@@ -12,6 +12,8 @@ import {
   Languages,
   MessageSquare,
   Heart,
+  Sparkles,
+  AlertCircle,
 } from "lucide-react";
 import { demoConversations, type ChatMessage } from "@/lib/mock-data";
 
@@ -20,7 +22,27 @@ const quickPrompts = [
   "I ate",
   "I feel weird",
   "What's unusual today?",
+  "I took it",
+  "I'm out",
 ];
+
+const eventParsing: Record<string, { type: string; confidence: number; parsed: string }> = {
+  "I took my meds": { type: "med_taken", confidence: 0.85, parsed: "Medication taken (which one?)" },
+  "I ate": { type: "meal_logged", confidence: 0.70, parsed: "Meal logged (meal or snack?)" },
+  "I feel weird": { type: "symptom_reported", confidence: 0.60, parsed: "Symptom reported (needs clarification)" },
+  "What's unusual today?": { type: "user_question", confidence: 0.95, parsed: "Routine summary request" },
+  "I took it": { type: "med_taken", confidence: 0.50, parsed: "Ambiguous — which medicine?" },
+  "I'm out": { type: "activity_started", confidence: 0.55, parsed: "Ambiguous — walking or traveling?" },
+};
+
+const ambiguityResponses: Record<string, ChatMessage[]> = {
+  "I took it": [
+    { id: 1, sender: "sahai", text: "Which medicine did you take? Pick one:\n\n1. Metformin 500mg (morning)\n2. Amlodipine 5mg\n3. Something else\n\nOr just say the name and I'll log it.", time: "" },
+  ],
+  "I'm out": [
+    { id: 1, sender: "sahai", text: "Are you:\n\n1. Going for a walk\n2. Heading somewhere (travel)\n3. Just stepping out briefly\n\nThis helps me watch your routine better.", time: "" },
+  ],
+};
 
 export default function Voice() {
   const [messages, setMessages] = useState<ChatMessage[]>([
@@ -29,6 +51,8 @@ export default function Voice() {
   const [inputText, setInputText] = useState("");
   const [simpleMode, setSimpleMode] = useState(false);
   const [isTyping, setIsTyping] = useState(false);
+  const [lastParsedEvent, setLastParsedEvent] = useState<{ type: string; confidence: number; parsed: string } | null>(null);
+  const [lastUserText, setLastUserText] = useState("");
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -40,15 +64,27 @@ export default function Voice() {
   const sendMessage = (text: string) => {
     if (!text.trim()) return;
 
+    const now = () => new Date().toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true });
     const userMsg: ChatMessage = {
       id: Date.now(),
       sender: "user",
       text: text.trim(),
-      time: new Date().toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true }),
+      time: now(),
     };
     setMessages(prev => [...prev, userMsg]);
     setInputText("");
     setIsTyping(true);
+    setLastUserText(text.trim());
+
+    const parsedEvent = Object.entries(eventParsing).find(
+      ([k]) => text.trim().toLowerCase() === k.toLowerCase()
+    );
+    if (parsedEvent) setLastParsedEvent(parsedEvent[1]);
+    else setLastParsedEvent(null);
+
+    const ambiguityKey = Object.keys(ambiguityResponses).find(
+      k => text.trim().toLowerCase() === k.toLowerCase()
+    );
 
     const demoKey = Object.keys(demoConversations).find(
       k => text.trim().toLowerCase().includes(k.toLowerCase())
@@ -56,16 +92,17 @@ export default function Voice() {
 
     setTimeout(() => {
       setIsTyping(false);
-      if (demoKey) {
+      if (ambiguityKey) {
+        const resp = ambiguityResponses[ambiguityKey][0];
+        setMessages(prev => [...prev, { ...resp, id: Date.now() + 1, time: now() }]);
+      } else if (demoKey) {
         const convo = demoConversations[demoKey];
         const responses = convo.filter(m => m.sender === "sahai");
         if (responses.length > 0) {
-          const resp = responses[0];
-          setMessages(prev => [...prev, { ...resp, id: Date.now() + 1, time: new Date().toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true }) }]);
-
+          setMessages(prev => [...prev, { ...responses[0], id: Date.now() + 1, time: now() }]);
           if (responses.length > 1) {
             setTimeout(() => {
-              setMessages(prev => [...prev, { ...responses[responses.length - 1], id: Date.now() + 2, time: new Date().toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true }) }]);
+              setMessages(prev => [...prev, { ...responses[responses.length - 1], id: Date.now() + 2, time: now() }]);
             }, 2000);
           }
         }
@@ -76,7 +113,7 @@ export default function Voice() {
           text: simpleMode
             ? "I heard you. Let me help. Can you tell me more about what you need?"
             : "I understand. Could you tell me a bit more so I can help you better? For example, you can say 'I took my meds', 'I ate', or 'I feel unwell'.",
-          time: new Date().toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true }),
+          time: now(),
         }]);
       }
     }, 1200);
@@ -171,6 +208,24 @@ export default function Voice() {
             )}
           </div>
         </ScrollArea>
+        {lastParsedEvent && (
+          <div className="px-4 py-2 border-t border-border bg-muted/50" data-testid="card-parsed-event">
+            <div className="flex items-center gap-2 text-xs">
+              <Sparkles className="w-3 h-3 text-primary flex-shrink-0" />
+              <span className="text-muted-foreground">Parsed:</span>
+              <Badge variant="secondary" className="text-xs no-default-active-elevate">{lastParsedEvent.type}</Badge>
+              <span className="text-muted-foreground">—</span>
+              <span className={lastParsedEvent.confidence < 0.7 ? "text-amber-600 dark:text-amber-400" : "text-emerald-600 dark:text-emerald-400"}>
+                {Math.round(lastParsedEvent.confidence * 100)}% conf
+              </span>
+              {lastParsedEvent.confidence < 0.7 && (
+                <span className="flex items-center gap-0.5 text-amber-600 dark:text-amber-400">
+                  <AlertCircle className="w-3 h-3" /> Ambiguous
+                </span>
+              )}
+            </div>
+          </div>
+        )}
         <div className="p-3 border-t border-border">
           <div className="flex items-center gap-2">
             <Button size="icon" variant="secondary" aria-label="Voice input" data-testid="button-mic">
@@ -189,10 +244,39 @@ export default function Voice() {
             </Button>
           </div>
           <div className="flex items-center gap-2 mt-2">
-            <Button size="sm" variant="ghost" className="text-xs text-muted-foreground" data-testid="button-repeat">
+            <Button
+              size="sm"
+              variant="ghost"
+              className="text-xs text-muted-foreground"
+              data-testid="button-repeat"
+              onClick={() => {
+                const lastSahai = [...messages].reverse().find(m => m.sender === "sahai");
+                if (lastSahai) {
+                  setMessages(prev => [...prev, {
+                    id: Date.now(),
+                    sender: "sahai",
+                    text: `(Repeating) ${lastSahai.text}`,
+                    time: new Date().toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true }),
+                  }]);
+                }
+              }}
+            >
               <RefreshCw className="w-3 h-3 mr-1" /> Repeat
             </Button>
-            <Button size="sm" variant="ghost" className="text-xs text-muted-foreground" data-testid="button-language">
+            <Button
+              size="sm"
+              variant="ghost"
+              className="text-xs text-muted-foreground"
+              data-testid="button-language"
+              onClick={() => {
+                setMessages(prev => [...prev, {
+                  id: Date.now(),
+                  sender: "sahai",
+                  text: "मैंने आपकी बात समझ ली। क्या आप मुझे और बता सकते हैं? आप कह सकते हैं 'मैंने दवाई ली', 'मैंने खाना खाया', या 'मुझे अच्छा नहीं लग रहा'।",
+                  time: new Date().toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true }),
+                }]);
+              }}
+            >
               <Languages className="w-3 h-3 mr-1" /> Say in my language
             </Button>
           </div>

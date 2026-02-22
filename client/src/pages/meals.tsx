@@ -222,6 +222,20 @@ export default function Meals() {
           </div>
         </CardContent>
       </Card>
+
+      <Card className="bg-sky-50/50 dark:bg-sky-950/10 border-sky-200 dark:border-sky-800" data-testid="card-hydration-nudge">
+        <CardContent className="p-4">
+          <div className="flex items-start gap-3">
+            <Droplets className="w-5 h-5 text-sky-500 mt-0.5 flex-shrink-0" />
+            <div>
+              <p className="text-sm font-medium">Hydration Reminder</p>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                It's 32°C and warm today. You've had 2 glasses so far — try to drink at least 6-8 glasses. Staying hydrated helps your Metformin work better and reduces dizziness risk.
+              </p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }

@@ -100,7 +100,53 @@ export const statusChips: StatusChip[] = [
   { id: "med", label: "Med due soon", type: "warning", icon: "pill" },
   { id: "meal", label: "Lunch not logged", type: "caution", icon: "utensils" },
   { id: "hydration", label: "Drink water", type: "info", icon: "droplets" },
+  { id: "activity", label: "Unusual inactivity", type: "caution", icon: "activity" },
+  { id: "location", label: "At home", type: "success", icon: "home" },
 ];
+
+export const locationStates = ["Home", "Outside", "Traveling", "Unknown"] as const;
+export type LocationState = typeof locationStates[number];
+
+export const contextSnapshot = {
+  time: new Date().toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true }),
+  location: "Home" as LocationState,
+  weather: "32°C, Warm & Humid",
+  activity: "Resting",
+  lastMeal: "Breakfast at 8:30 AM",
+  nextMed: "Metformin 500mg at 8:00 PM",
+};
+
+export const todayVsUsual = [
+  { label: "Wake time", today: "6:45 AM", usual: "6:30 AM", status: "slightly late" as const },
+  { label: "Breakfast", today: "8:30 AM", usual: "8:00 AM", status: "slightly late" as const },
+  { label: "Lunch", today: "Not yet", usual: "12:30 PM", status: "delayed" as const },
+  { label: "Morning walk", today: "30 min", usual: "25 min", status: "on track" as const },
+  { label: "Morning meds", today: "2 of 3 taken", usual: "All by 9 AM", status: "partial" as const },
+];
+
+export const doctorVisitSummary = {
+  lastVisit: "Jan 15, 2026",
+  nextVisit: "Mar 10, 2026",
+  keyPoints: [
+    "Medication adherence: 85% (improved from 78% last month)",
+    "Blood pressure: mostly stable, 2 high readings this week",
+    "Recurring dizziness: 4 episodes in 2 weeks, usually afternoon",
+    "Diet compliance: Good - vegetarian meals, low sodium mostly followed",
+    "Activity: Regular morning walks (avg 25 min/day)",
+  ],
+  questionsToAsk: [
+    "Should Metformin timing be adjusted given frequent late lunches?",
+    "Is the recurring afternoon dizziness related to BP medication?",
+    "Can we reduce Atorvastatin dose given improved cholesterol?",
+  ],
+};
+
+export const prescriptionExplanation = {
+  medName: "Metformin",
+  simplePlain: "This medicine helps control your blood sugar levels. It makes your body use insulin better. Take it after eating food — never on an empty stomach, as it can cause an upset tummy.",
+  hindiPlain: "यह दवाई आपके ब्लड शुगर को कंट्रोल करने में मदद करती है। इसे खाना खाने के बाद लें — खाली पेट न लें।",
+  teachBack: "Can you tell me in your own words — when will you take this medicine, and should you eat before or after taking it?",
+};
 
 export const riskGuidance: RiskGuidance = {
   level: "medium",

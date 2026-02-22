@@ -13,9 +13,15 @@ import {
   ArrowUp,
   ArrowDown,
   Minus,
+  Calendar,
+  FileText,
+  HelpCircle,
+  Clock,
+  CheckCircle,
+  AlertCircle,
 } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
-import { weeklyInsights, weatherData, medications } from "@/lib/mock-data";
+import { weeklyInsights, weatherData, medications, todayVsUsual, doctorVisitSummary } from "@/lib/mock-data";
 
 const trendIcon = {
   improving: ArrowUp,
@@ -181,6 +187,78 @@ export default function Insights() {
             <p className="text-sm text-muted-foreground">
               Your afternoon dizziness may be related to delayed lunches. Try eating by 12:30 PM this week and see if it helps.
             </p>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card data-testid="card-today-vs-usual">
+        <CardHeader className="pb-2">
+          <div className="flex items-center gap-2">
+            <Clock className="w-4 h-4 text-muted-foreground" />
+            <CardTitle className="text-sm font-semibold">Today vs Your Usual</CardTitle>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-2.5">
+            {todayVsUsual.map((item, i) => {
+              const statusColor = item.status === "on track"
+                ? "text-emerald-600 dark:text-emerald-400"
+                : item.status === "delayed" || item.status === "partial"
+                ? "text-red-500 dark:text-red-400"
+                : "text-amber-600 dark:text-amber-400";
+              const StatusIcon = item.status === "on track" ? CheckCircle : item.status === "delayed" ? AlertCircle : AlertTriangle;
+              return (
+                <div key={i} className="flex items-center justify-between gap-2 py-1.5 border-b border-border last:border-0" data-testid={`row-compare-${i}`}>
+                  <div className="flex items-center gap-2 flex-1 min-w-0">
+                    <StatusIcon className={`w-3.5 h-3.5 flex-shrink-0 ${statusColor}`} />
+                    <span className="text-sm font-medium truncate">{item.label}</span>
+                  </div>
+                  <div className="flex items-center gap-3 text-xs">
+                    <span className="text-muted-foreground">{item.usual}</span>
+                    <span className="text-muted-foreground">→</span>
+                    <span className={`font-medium ${statusColor}`}>{item.today}</span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card className="bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-emerald-950/20 dark:to-teal-950/20 border-emerald-200 dark:border-emerald-800" data-testid="card-doctor-prep">
+        <CardHeader className="pb-2">
+          <div className="flex items-center justify-between gap-1">
+            <div className="flex items-center gap-2">
+              <FileText className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+              <CardTitle className="text-sm font-semibold">Doctor Visit Prep</CardTitle>
+            </div>
+            <Badge variant="secondary" className="text-xs no-default-active-elevate">
+              <Calendar className="w-3 h-3 mr-0.5" /> {doctorVisitSummary.nextVisit}
+            </Badge>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div>
+            <p className="text-xs font-medium text-muted-foreground mb-2">Key Points to Discuss</p>
+            <div className="space-y-1.5">
+              {doctorVisitSummary.keyPoints.map((point, i) => (
+                <div key={i} className="flex items-start gap-2 text-sm">
+                  <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 mt-2 flex-shrink-0" />
+                  <span>{point}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+          <div>
+            <p className="text-xs font-medium text-muted-foreground mb-2">Suggested Questions</p>
+            <div className="space-y-1.5">
+              {doctorVisitSummary.questionsToAsk.map((q, i) => (
+                <div key={i} className="flex items-start gap-2 text-sm">
+                  <HelpCircle className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 mt-0.5 flex-shrink-0" />
+                  <span>{q}</span>
+                </div>
+              ))}
+            </div>
           </div>
         </CardContent>
       </Card>

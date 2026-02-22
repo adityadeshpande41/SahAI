@@ -1,0 +1,713 @@
+SahAI Feature List (Implementation Checklist)
+Your Routine Twin for everyday health
+1) Core Product / App Foundation
+
+Responsive web app (mobile-friendly)
+
+Future-ready backend for mobile app support
+
+Global disclaimer: support guidance, not a diagnosis tool
+
+Calm, elderly-friendly UI design
+
+Large tap targets / low cognitive load layout
+
+2) User Onboarding + Twin Setup
+
+User profile setup
+
+name
+
+age group
+
+preferred language
+
+Accessibility preferences
+
+large text mode
+
+high contrast mode
+
+simple language mode
+
+voice-first mode
+
+Routine preferences
+
+usual meal windows
+
+sleep window
+
+activity window
+
+Health preferences (optional)
+
+allergies
+
+diet preferences
+
+conditions
+
+Caregiver info (optional)
+
+Create initial Routine Twin profile
+
+3) SahAI Home Dashboard (Twin Screen)
+
+Greeting + user name
+
+Twin state card
+
+Green = on routine
+
+Yellow = drift detected
+
+Red = higher concern
+
+Status chips
+
+meal delayed
+
+med due
+
+weather caution
+
+unusual activity
+
+Quick action buttons
+
+I took meds
+
+I ate
+
+I feel unwell
+
+Talk to SahAI
+
+Explain simply
+
+Risk / alert banner area
+
+“Why SahAI flagged this” panel
+
+4) Prescription Upload + Medication Setup
+
+Upload prescription / med label image
+
+Store uploaded image
+
+AI extraction pipeline (or placeholder)
+
+med name
+
+dose
+
+frequency
+
+timing
+
+before/after food
+
+Review/edit extracted fields
+
+Save structured medication schedule
+
+Plain-language medication explanation
+
+“Say in my language” for prescription explanation
+
+Teach-back support
+
+“Can you repeat when you’ll take this medicine?”
+
+5) Medication Tracking
+
+Medication list screen
+
+Medication schedule view
+
+Mark medication as taken
+
+Snooze reminder
+
+Mark missed dose
+
+Adherence tracking
+
+After-food medication logic
+
+Personalized reminder timing improvements (from Routine Twin)
+
+6) Meal Tracking + Nutrition
+
+One-tap meal logging
+
+Text meal logging
+
+Voice meal logging (transcript path)
+
+Meal timing capture
+
+Meal type classification (meal vs snack)
+
+Meal photo upload
+
+Meal photo understanding pipeline (or placeholder)
+
+Food item normalization
+
+Basic nutrition metadata storage
+
+Hydration nudges tied to context
+
+Link meals to medication timing logic (“after food”)
+
+7) Symptom Tracking
+
+Symptom quick buttons
+
+dizzy
+
+nausea
+
+headache
+
+pain
+
+fatigue
+
+other
+
+Symptom severity input
+
+Voice symptom logging (transcript path)
+
+Symptom history log
+
+Repeated symptom pattern detection
+
+8) Activity Tracking
+
+Activity quick actions
+
+walking
+
+resting
+
+going out
+
+back home
+
+Activity start/end logging
+
+Activity state in dashboard
+
+Activity contributes to risk logic
+
+9) Conversational Logging (Natural Language Events)
+
+Text input for user check-ins (voice transcript-ready)
+
+Parse natural language into event types:
+
+med_taken
+
+med_missed
+
+meal_logged
+
+symptom_reported
+
+activity_started
+
+activity_ended
+
+location_state_updated
+
+user_question
+
+risk_alert_generated
+
+Store raw input + parsed output + confidence score
+
+Structured event logs (JSON fields)
+
+10) Ambiguity Handler (Key UX Feature)
+
+Detect ambiguous user inputs
+
+Ask follow-up only when ambiguity affects:
+
+safety
+
+correctness
+
+personalization
+
+One short follow-up at a time
+
+Multiple-choice prompts when possible
+
+Infer automatically when low-risk
+
+Examples to support:
+
+“I took it” → ask which medicine
+
+“I ate” → meal or snack
+
+“I feel weird” → symptom clarification
+
+“I’m out” → walking or traveling
+
+Store user aliases (example: “BP med”)
+
+11) Context Capture (Live Situation Inputs)
+
+Current time capture
+
+Timezone-aware logic
+
+Location state
+
+home
+
+outside
+
+travel
+
+unknown/manual
+
+Weather integration (API-ready)
+
+Temperature + weather condition storage
+
+Context snapshot logging
+
+Context chips on dashboard (weather / time / location state)
+
+12) Routine Twin Engine (Personalization Core)
+
+Build user baseline from logs
+
+usual meal windows
+
+medication timing behavior
+
+activity windows
+
+symptom frequency patterns
+
+Store Routine Twin baseline
+
+Pattern memory over time
+
+Drift score calculation
+
+Unusual behavior detection
+
+Explainability output:
+
+what is unusual
+
+compared to what baseline
+
+13) Deep Routine Learning (Advanced Logic)
+
+Weekday vs weekend pattern detection
+
+Sequence pattern learning
+
+meal -> meds -> walk
+
+Drift pattern learning
+
+what usually happens before missed meds/symptoms
+
+Behavior clustering
+
+home day vs outing day
+
+Advanced anomaly detection
+
+unusual timing
+
+unusual sequence
+
+unusual duration
+
+unusual inactivity
+
+unusual symptom repetition
+
+unusual context combinations
+
+Personalized risk scoring
+
+14) Live Situation Guard (Core Differentiator)
+
+Combine:
+
+time
+
+weather
+
+location state
+
+activity
+
+meals
+
+meds
+
+symptoms
+
+Routine Twin baseline
+
+Detect:
+
+what’s unusual right now
+
+why it may be risky
+
+what to do next
+
+Risk levels
+
+low
+
+medium
+
+high
+
+Deterministic safety rules for critical scenarios
+
+AI-generated personalized explanation layer
+
+15) Accessibility-First UX (Core Layer)
+
+Large text mode
+
+High contrast mode
+
+Simple language mode
+
+Big-button mode
+
+Read-aloud support
+
+Slower speech / repeat controls
+
+Multilingual output mode
+
+Teach-back mode
+
+“Explain simply” action on dashboard
+
+16) Voice-First Experience (ElevenLabs-ready)
+
+Voice mode toggle
+
+Text transcript fallback (for testing)
+
+Voice input flow (STT-ready)
+
+Voice output flow (ElevenLabs TTS-ready)
+
+“Repeat that” interaction
+
+“Say it in my language” interaction
+
+Voice responses for alerts and guidance
+
+17) SahAI Avatar (Routine Twin Interface)
+
+Stylized avatar (not necessarily photoreal)
+
+Avatar state based on risk/drift
+
+Twin status visualization (green/yellow/red)
+
+Avatar-driven home screen
+
+Optional avatar personalization (name/style)
+
+Optional future avatar from user photo
+
+18) Caregiver Mode (Opt-in)
+
+Add caregiver contact(s)
+
+Sharing settings
+
+emergency only
+
+daily summary
+
+meds only
+
+custom
+
+User-first prompt before escalation
+
+Caregiver alert/summary generation
+
+In-app caregiver alert simulation (for demo)
+
+Caregiver status summary
+
+Optional caregiver dashboard (bonus)
+
+19) Summaries + Insights
+
+Morning briefing
+
+weather
+
+med schedule
+
+routine caution
+
+Evening summary
+
+meds / meals / symptoms / drift events
+
+Weekly Routine Twin summary
+
+Caregiver summary
+
+Doctor visit prep summary (bonus)
+
+“Today vs your usual”
+
+“What changed this week”
+
+Pattern insights
+
+Gentle, non-judgmental tone
+
+20) Multi-Agent Architecture (Backend Services)
+
+Implement modular services / agents:
+
+Twin Orchestrator
+
+Routine Twin Memory Agent
+
+Medication Agent
+
+Nutrition Agent
+
+Symptom Agent
+
+Context Agent
+
+Risk / Live Situation Guard Agent
+
+Ambiguity Handler Agent
+
+Accessibility & Language Agent
+
+Summary Agent
+
+Caregiver Agent
+
+Voice Interface Agent
+
+All agents should use shared user memory/state.
+
+21) RAG + Knowledge Layer
+Personal RAG
+
+Routine Twin memory
+
+user baseline
+
+habits
+
+med aliases
+
+past drift events
+
+preferences
+
+Domain RAGs
+
+Medication RAG
+
+Nutrition RAG
+
+Symptom/Safety RAG
+
+Accessibility/Language RAG
+
+RAG capabilities
+
+vector storage-ready schema
+
+embeddings storage
+
+retrieval pipeline hooks
+
+22) External API Integrations
+
+OpenAI API
+
+parsing
+
+summaries
+
+explainability
+
+translation
+
+embeddings
+
+image understanding (prescriptions / meals)
+
+ElevenLabs
+
+TTS / voice response
+
+conversational voice integration
+
+Weather API
+
+current weather
+
+forecast context
+
+Location / Geocoding API
+
+location normalization
+
+home/outside/travel inference
+
+Nutrition / Food API
+
+food normalization
+
+meal nutrition metadata
+
+macro estimates (if available)
+
+23) Data Model / Storage
+
+Tables/collections to implement:
+
+users
+
+user_preferences
+
+routine_baseline
+
+medications
+
+medication_schedule
+
+meal_logs
+
+meal_nutrition_metadata
+
+symptom_logs
+
+activity_logs
+
+context_snapshots
+
+event_logs
+
+risk_alerts
+
+caregiver_contacts
+
+caregiver_notifications
+
+summaries
+
+documents_uploads
+
+ambiguity_aliases
+
+vector_memory_chunks
+
+24) Observability + Reliability
+
+AI call logging
+
+Ambiguity follow-up logging
+
+Risk alert logging
+
+User action tracking
+
+Graceful fallback when external APIs fail
+
+Mock data fallback for demo mode
+
+Env variable support for all API keys
+
+25) Build Prioritization (single version, execution tiers)
+Tier 1 (Must Demo)
+
+onboarding + Twin setup
+
+home dashboard
+
+prescription upload + med schedule
+
+medication / meal / symptom / activity logging
+
+conversational logging parser
+
+context capture (time/weather/location state)
+
+routine baseline + basic anomaly detection
+
+Live Situation Guard response
+
+ambiguity handler
+
+accessibility modes
+
+voice/text interaction shell
+
+Twin avatar UI
+
+Tier 2 (Strong Differentiators)
+
+deep routine learning patterns
+
+meal photo understanding + nutrition enrichment
+
+prescription translation + teach-back
+
+caregiver summary / alert flow
+
+weekly pattern insights
+
+“Why SahAI flagged this” explainability polish
+
+Tier 3 (Bonus Polish)
+
+caregiver dashboard UI
+
+doctor visit prep summary
+
+avatar personalization
+
+wearable integration placeholder (future scope only)
+
+26) Future Scope (not core for current hackathon)
+
+Wearable / health app integrations
+
+Apple Health
+
+Fitbit
+
+Garmin
+
+Additional sensors / passive activity signals
+
+Native mobile app using same backend APIs

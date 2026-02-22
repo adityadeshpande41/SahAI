@@ -14,15 +14,21 @@ import {
   Camera,
   FileText,
   AlertCircle,
+  Languages,
+  MessageSquare,
+  HelpCircle,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { medications as initialMeds, type Medication } from "@/lib/mock-data";
+import { medications as initialMeds, prescriptionExplanation, type Medication } from "@/lib/mock-data";
 
 export default function Medications() {
   const { toast } = useToast();
   const [meds, setMeds] = useState<Medication[]>(initialMeds);
   const [showUpload, setShowUpload] = useState(false);
   const [uploadPreview, setUploadPreview] = useState(false);
+  const [showExplanation, setShowExplanation] = useState(false);
+  const [showTranslation, setShowTranslation] = useState(false);
+  const [showTeachBack, setShowTeachBack] = useState(false);
 
   const takenCount = meds.filter(m => m.taken).length;
   const adherence = Math.round((takenCount / meds.length) * 100);
@@ -203,6 +209,54 @@ export default function Medications() {
           </Card>
         )}
       </div>
+      <Card data-testid="card-med-explanation">
+        <CardHeader className="pb-2">
+          <div className="flex items-center gap-2">
+            <MessageSquare className="w-4 h-4 text-primary" />
+            <CardTitle className="text-sm font-semibold">Understand Your Medication</CardTitle>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {!showExplanation ? (
+            <Button variant="secondary" className="w-full" onClick={() => setShowExplanation(true)} data-testid="button-explain-med">
+              <HelpCircle className="w-4 h-4 mr-2" /> Explain {prescriptionExplanation.medName} simply
+            </Button>
+          ) : (
+            <div className="space-y-3 animate-slide-up">
+              <div className="rounded-md bg-primary/5 dark:bg-primary/10 p-3">
+                <p className="text-xs font-medium text-primary mb-1">Plain Language Explanation</p>
+                <p className="text-sm leading-relaxed" data-testid="text-med-explanation">
+                  {prescriptionExplanation.simplePlain}
+                </p>
+              </div>
+
+              {!showTranslation ? (
+                <Button size="sm" variant="secondary" onClick={() => setShowTranslation(true)} data-testid="button-say-in-language">
+                  <Languages className="w-3.5 h-3.5 mr-1" /> Say in my language
+                </Button>
+              ) : (
+                <div className="rounded-md bg-amber-50 dark:bg-amber-950/20 p-3 animate-slide-up" data-testid="card-translation">
+                  <p className="text-xs font-medium text-amber-700 dark:text-amber-300 mb-1">Hindi Translation</p>
+                  <p className="text-sm leading-relaxed">{prescriptionExplanation.hindiPlain}</p>
+                </div>
+              )}
+
+              {!showTeachBack ? (
+                <Button size="sm" variant="secondary" onClick={() => setShowTeachBack(true)} data-testid="button-teach-back">
+                  <MessageSquare className="w-3.5 h-3.5 mr-1" /> Teach-back check
+                </Button>
+              ) : (
+                <div className="rounded-md bg-sky-50 dark:bg-sky-950/20 border border-sky-200 dark:border-sky-800 p-3 animate-slide-up" data-testid="card-teach-back">
+                  <p className="text-xs font-medium text-sky-700 dark:text-sky-300 mb-1">Teach-Back</p>
+                  <p className="text-sm leading-relaxed text-sky-800 dark:text-sky-200">
+                    {prescriptionExplanation.teachBack}
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }

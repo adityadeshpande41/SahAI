@@ -33,6 +33,8 @@ export default function Onboarding() {
     dinnerTime: "7:30 PM",
     sleepTime: "10:00 PM",
     wakeTime: "6:30 AM",
+    activityTime: "7:00 AM",
+    activityDuration: "30 min",
     caregiverName: "",
     caregiverPhone: "",
     allergies: "",
@@ -184,6 +186,26 @@ export default function Onboarding() {
                         onChange={e => setForm(p => ({ ...p, wakeTime: e.target.value }))}
                         className="text-center text-sm"
                         data-testid="input-wake"
+                      />
+                    </div>
+                  </div>
+                  <div className="pt-2">
+                    <Label>Activity window</Label>
+                    <div className="flex items-center gap-2 mt-2">
+                      <Input
+                        value={form.activityTime}
+                        onChange={e => setForm(p => ({ ...p, activityTime: e.target.value }))}
+                        className="text-center text-sm"
+                        placeholder="Start time"
+                        data-testid="input-activity-time"
+                      />
+                      <span className="text-sm text-muted-foreground">for</span>
+                      <Input
+                        value={form.activityDuration}
+                        onChange={e => setForm(p => ({ ...p, activityDuration: e.target.value }))}
+                        className="text-center text-sm"
+                        placeholder="Duration"
+                        data-testid="input-activity-duration"
                       />
                     </div>
                   </div>

@@ -22,6 +22,9 @@ import {
   Check,
   Heart,
   TrendingUp,
+  Activity,
+  Home,
+  Info,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -33,6 +36,7 @@ import {
   getCurrentDate,
   weatherData,
   weeklyInsights,
+  contextSnapshot,
 } from "@/lib/mock-data";
 import { Link } from "wouter";
 
@@ -46,6 +50,8 @@ const chipIcons: Record<string, typeof Pill> = {
   pill: Pill,
   utensils: UtensilsCrossed,
   droplets: Droplets,
+  activity: Activity,
+  home: Home,
 };
 
 const chipColors = {
@@ -231,6 +237,29 @@ export default function Dashboard() {
               </AccordionContent>
             </AccordionItem>
           </Accordion>
+        </CardContent>
+      </Card>
+
+      <Card className="border-dashed" data-testid="card-context-snapshot">
+        <CardContent className="p-4">
+          <div className="flex items-center gap-2 mb-2">
+            <Info className="w-3.5 h-3.5 text-muted-foreground" />
+            <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Context Snapshot</span>
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-xs">
+            <div className="flex items-center gap-1.5">
+              <Home className="w-3 h-3 text-emerald-500" />
+              <span>{contextSnapshot.location}</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <CloudSun className="w-3 h-3 text-amber-500" />
+              <span>{contextSnapshot.weather}</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <Activity className="w-3 h-3 text-sky-500" />
+              <span>{contextSnapshot.activity}</span>
+            </div>
+          </div>
         </CardContent>
       </Card>
 
