@@ -1,0 +1,698 @@
+Build a modern, polished, responsive frontend web app called SahAI.
+
+Product concept
+
+SahAI is a voice-first, accessibility-first health copilot with a “Routine Twin” interface. It helps users track meds, meals, symptoms, and activity, and shows context-aware guidance (time, weather, location/activity) in a friendly, simple way.
+
+This Replit version should focus on:
+
+beautiful frontend design
+
+mobile + desktop responsive experience
+
+demo-ready UI flows with mock data
+
+light mode + dark mode
+
+accessibility-first UI patterns
+
+Do not build full backend logic yet. Use mock data, local state, and placeholder service calls so backend APIs can be connected later.
+
+Tech / UI requirements
+
+Build as a responsive web app (mobile-first but great on desktop)
+
+Use a clean modern stack (React + Tailwind preferred)
+
+Include light mode and dark mode
+
+Use smooth animations and transitions (subtle, not flashy)
+
+Use reusable components
+
+Keep the UI calm, health-focused, elder-friendly, and premium
+
+Make it easy to connect a backend later (clear separation of UI components vs mock service layer)
+
+Global design style
+
+Design should feel:
+
+warm and trustworthy
+
+clean, minimal, modern
+
+easy for older adults
+
+visually polished for hackathon demo judges
+
+UI style details
+
+rounded cards
+
+soft shadows
+
+large tap targets
+
+clear hierarchy
+
+strong contrast in both themes
+
+readable fonts
+
+icon support (meds, food, alerts, weather, voice, caregiver)
+
+Core screens to build (frontend only)
+1) Onboarding / Twin Setup
+
+Create a multi-step onboarding flow with progress indicator.
+
+Step content
+
+Name
+
+Age group
+
+Preferred language
+
+Accessibility preferences
+
+large text
+
+high contrast
+
+simple language
+
+voice-first mode
+
+Routine preferences
+
+typical breakfast/lunch/dinner times
+
+sleep window
+
+activity window
+
+Optional caregiver contact
+
+Optional health preferences
+
+allergies
+
+diet preference
+
+conditions (optional chips)
+
+UX details
+
+Large buttons
+
+Friendly microcopy
+
+“Skip for now” options on optional fields
+
+Final CTA: Create My SahAI Twin
+
+2) SahAI Home Dashboard (Main Twin Screen)
+
+This is the most important screen. Make it visually impressive.
+
+Top area
+
+Greeting (“Good afternoon, Aditya”)
+
+Date/time
+
+Theme toggle (light/dark)
+
+Profile/settings icon
+
+Main hero card (Routine Twin)
+
+Stylized SahAI avatar or character illustration placeholder
+
+Twin state badge:
+
+Green = On Routine
+
+Yellow = Drift Detected
+
+Red = Higher Concern
+
+Short status text
+
+e.g. “You’re mostly on track today”
+
+e.g. “Lunch is delayed and medication is due soon”
+
+Status chips row
+
+Med due
+
+Meal delayed
+
+Weather caution
+
+Unusual activity
+
+Hydration reminder
+
+Quick action grid (big buttons)
+
+I took meds
+
+I ate
+
+I feel unwell
+
+I’m going out / I’m back home
+
+Talk to SahAI
+
+Explain simply
+
+Risk / guidance card
+
+“Live Situation Guard”
+
+Show:
+
+what is unusual
+
+why it matters
+
+what to do next
+
+Include risk level pill: Low / Medium / High
+
+Explainability accordion
+
+“Why SahAI flagged this”
+
+Expand to show:
+
+baseline comparison
+
+triggers
+
+recommended action
+
+3) Medication Screen
+
+Create a dedicated meds page.
+
+Sections
+
+Medication list cards
+
+med name
+
+dose
+
+timing
+
+before/after food tag
+
+Today’s schedule timeline
+
+Medication adherence summary
+
+Action buttons per med:
+
+Taken
+
+Snooze
+
+Missed
+
+Upload prescription CTA (prominent)
+
+Prescription upload UI (frontend demo)
+
+Drag/drop or upload image
+
+Preview uploaded image
+
+Mock extraction result card:
+
+med name
+
+dose
+
+frequency
+
+timing
+
+confidence tag
+
+Editable fields
+
+“Confirm & Add Schedule” button
+
+4) Meals & Nutrition Screen
+
+Create a polished meals page.
+
+Sections
+
+Today’s meal timeline (breakfast/lunch/dinner/snacks)
+
+Add meal actions:
+
+quick add meal
+
+quick add snack
+
+text entry
+
+upload meal photo
+
+Meal cards with:
+
+meal type
+
+time
+
+food summary
+
+hydration hint
+
+Nutrition summary panel (mock)
+
+calories (optional)
+
+protein (optional)
+
+hydration status
+
+“Linked to meds” indicator if meal affects medication timing
+
+Meal photo demo UI
+
+image upload preview
+
+mock analysis result panel
+
+“Detected: sandwich + tea”
+
+“Classified as: light meal”
+
+“Medication note: counts as food for after-food meds” (demo text)
+
+5) Symptoms & Activity Screen
+
+Create a tracking page for symptoms + activity.
+
+Symptoms section
+
+Quick symptom chips/buttons:
+
+dizzy
+
+nausea
+
+headache
+
+pain
+
+fatigue
+
+other
+
+Severity selector (1–5)
+
+Optional notes field
+
+“Log symptom” button
+
+Activity section
+
+Quick action buttons:
+
+Walking
+
+Resting
+
+Going out
+
+Back home
+
+Current activity state card
+
+Recent activity timeline
+
+Pattern insight card (demo)
+
+e.g. “You reported dizziness twice this week, usually in the afternoon.”
+
+6) Voice / Conversation Screen (Demo UI)
+
+Create a conversation screen for “Talk to SahAI”.
+
+UI elements
+
+chat-style message list (user + SahAI bubbles)
+
+microphone button (demo)
+
+text input fallback
+
+“Send” button
+
+“Repeat” button
+
+“Say in my language” button
+
+“Simple mode” toggle
+
+Demo interactions (mocked)
+
+Add a few canned demo flows:
+
+“I took my meds”
+
+“I ate”
+
+“I feel weird”
+
+“What’s unusual today?”
+
+Show how follow-up prompts appear (ambiguity handler UX):
+
+“Which medicine did you take?”
+
+“Was that a meal or a snack?”
+
+“Are you dizzy, weak, nauseous, or something else?”
+
+7) Caregiver Mode / Caregiver Settings Screen
+
+Create an opt-in caregiver page.
+
+UI elements
+
+Add caregiver form
+
+Privacy controls:
+
+emergency only
+
+daily summary
+
+meds only
+
+custom
+
+Caregiver summary preview card
+
+Alert simulation card:
+
+“Simulate high-risk alert”
+
+show generated caregiver notification UI
+
+8) Insights & Summaries Screen
+
+Create a clean summaries page.
+
+Cards
+
+Morning Briefing
+
+weather
+
+med schedule
+
+routine caution
+
+Evening Summary
+
+meds
+
+meals
+
+symptoms
+
+drift events
+
+Weekly Routine Twin Summary
+
+today vs usual
+
+what changed this week
+
+gentle trend insights
+
+Visuals
+
+lightweight charts/cards (do not overcomplicate)
+
+simple, readable insights
+
+emphasis on clarity over analytics density
+
+9) Settings & Accessibility Screen
+
+This screen should be strong because accessibility is core.
+
+Include
+
+Theme toggle (light/dark/system)
+
+Large text mode
+
+High contrast mode
+
+Simple language mode
+
+Big-button mode
+
+Read-aloud toggle
+
+Slower speech toggle
+
+Language selector
+
+Teach-back mode toggle
+
+Requirement
+
+Changes should visibly update the UI in real time (especially:
+
+text size
+
+contrast
+
+button sizing
+
+simplified copy where possible)
+
+Mobile + desktop responsiveness requirements
+
+Mobile-first layouts
+
+Bottom navigation on mobile
+
+Sidebar navigation on desktop/tablet
+
+Sticky quick actions on mobile where helpful
+
+Cards should stack well on small screens
+
+Ensure touch targets are large enough for elderly users
+
+Test layouts for:
+
+small phone
+
+large phone
+
+tablet
+
+desktop
+
+Navigation structure
+
+Use a clean navigation system with icons.
+
+Suggested tabs/pages
+
+Home
+
+Meds
+
+Meals
+
+Symptoms
+
+Talk
+
+Insights
+
+Caregiver
+
+Settings
+
+On mobile:
+
+use bottom nav for primary pages
+
+secondary pages can open as stacked screens or modals
+
+Demo data and mock state (important)
+
+Build with realistic mock data so the app looks alive.
+
+Include mock examples for:
+
+user profile
+
+medication schedule
+
+meal logs
+
+symptom logs
+
+activity logs
+
+context snapshots (weather/time/location state)
+
+risk alerts
+
+summaries
+
+Include at least 3 demo scenarios
+
+Normal day (green state)
+
+Drift detected (yellow state)
+
+delayed lunch + med due
+
+Higher concern (red state)
+
+user outside + hot weather + symptom logged
+
+Make it easy to switch scenarios from a hidden dev/demo toggle.
+
+Component requirements (important for future backend integration)
+
+Keep UI components clean and reusable.
+
+Create separate components for:
+
+AvatarCard / TwinStateCard
+
+StatusChips
+
+QuickActionsGrid
+
+RiskGuidanceCard
+
+ExplainabilityPanel
+
+MedicationCard
+
+MealCard
+
+SymptomLogger
+
+ActivityLogger
+
+ChatWindow
+
+AccessibilityControls
+
+SummaryCard
+
+Also create a simple mock service layer file/module with functions like:
+
+getDashboardData()
+
+getMedications()
+
+logMeal()
+
+logSymptom()
+
+getRiskGuidance()
+
+getSummaries()
+
+This should return mock JSON now, and can later be replaced by backend API calls from Kiro.
+
+Theme requirements (light + dark mode)
+
+Implement full theme support:
+
+light mode
+
+dark mode
+
+system mode (optional)
+
+Ensure:
+
+all cards, chips, buttons, alerts, and text are readable in both modes
+
+health risk colors are accessible (not neon)
+
+contrast remains good in high contrast mode
+
+Animation / polish
+
+Add tasteful micro-interactions:
+
+button press feedback
+
+card hover on desktop
+
+smooth page transitions
+
+accordion expand/collapse
+
+chip state animations
+
+subtle avatar state animation (optional)
+
+Keep it smooth and professional, not overly flashy.
+
+Accessibility requirements (frontend)
+
+semantic HTML where possible
+
+keyboard navigable
+
+clear focus states
+
+ARIA labels for important controls
+
+large readable text option
+
+contrast-safe color choices
+
+avoid tiny icons/buttons
+
+do not rely only on color for risk states (also use labels/icons)
+
+Non-functional requirements
+
+Clean folder structure
+
+Reusable components
+
+Mock data isolated from UI
+
+Easy to connect backend later
+
+Environment-ready placeholders for:
+
+OpenAI
+
+ElevenLabs
+
+weather API
+
+location API
+
+nutrition API
