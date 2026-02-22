@@ -53,26 +53,31 @@ export default function Medications() {
   return (
     <div className="space-y-5 animate-fade-in">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight" data-testid="text-medications-title">Medications</h1>
+        <h1 className="text-2xl font-bold tracking-tight text-gradient" data-testid="text-medications-title">Medications</h1>
         <p className="text-sm text-muted-foreground mt-1">Track and manage your daily medications</p>
       </div>
 
-      <Card data-testid="card-adherence">
+      <Card className="card-elevated" data-testid="card-adherence">
         <CardContent className="p-4">
           <div className="flex items-center justify-between gap-1 mb-2">
             <span className="text-sm font-medium">Today's Adherence</span>
-            <span className="text-sm font-bold text-primary">{adherence}%</span>
+            <span className="text-sm font-bold text-primary tabular-nums">{adherence}%</span>
           </div>
-          <Progress value={adherence} className="h-2" />
-          <p className="text-xs text-muted-foreground mt-2">{takenCount} of {meds.length} medications taken</p>
+          <div className="relative h-2 rounded-full bg-muted overflow-hidden">
+            <div
+              className="absolute inset-y-0 left-0 rounded-full bg-gradient-to-r from-primary/80 to-primary transition-all duration-500"
+              style={{ width: `${adherence}%` }}
+            />
+          </div>
+          <p className="text-xs text-muted-foreground mt-2"><span className="tabular-nums">{takenCount}</span> of <span className="tabular-nums">{meds.length}</span> medications taken</p>
         </CardContent>
       </Card>
 
       <div>
-        <h2 className="text-sm font-semibold mb-3 text-muted-foreground uppercase tracking-wider">Today's Schedule</h2>
+        <h2 className="text-sm font-semibold mb-3 text-muted-foreground uppercase tracking-wider flex items-center gap-2"><span className="w-1 h-4 rounded-full bg-primary inline-block" />Today's Schedule</h2>
         <div className="space-y-3">
           {meds.map(med => (
-            <Card key={med.id} className={med.taken ? "opacity-75" : ""} data-testid={`card-med-${med.id}`}>
+            <Card key={med.id} className={`card-elevated ${med.taken ? "opacity-75" : ""}`} data-testid={`card-med-${med.id}`}>
               <CardContent className="p-4">
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex items-start gap-3 flex-1 min-w-0">
@@ -107,14 +112,14 @@ export default function Medications() {
                   </div>
                 </div>
                 {!med.taken && !med.missed && (
-                  <div className="flex items-center gap-2 mt-3 pt-3 border-t border-border">
-                    <Button size="sm" onClick={() => handleAction(med.id, "taken")} className="flex-1" data-testid={`button-taken-${med.id}`}>
+                  <div className="flex items-center gap-2 mt-3 pt-3 border-t border-border animate-scale-in">
+                    <Button size="sm" onClick={() => handleAction(med.id, "taken")} className="flex-1 active:scale-[0.97]" data-testid={`button-taken-${med.id}`}>
                       <Check className="w-3.5 h-3.5 mr-1" /> Taken
                     </Button>
-                    <Button size="sm" variant="secondary" onClick={() => handleAction(med.id, "snoozed")} data-testid={`button-snooze-${med.id}`}>
+                    <Button size="sm" variant="secondary" onClick={() => handleAction(med.id, "snoozed")} className="active:scale-[0.97]" data-testid={`button-snooze-${med.id}`}>
                       <Clock className="w-3.5 h-3.5 mr-1" /> Snooze
                     </Button>
-                    <Button size="sm" variant="secondary" onClick={() => handleAction(med.id, "missed")} data-testid={`button-missed-${med.id}`}>
+                    <Button size="sm" variant="secondary" onClick={() => handleAction(med.id, "missed")} className="active:scale-[0.97]" data-testid={`button-missed-${med.id}`}>
                       <X className="w-3.5 h-3.5 mr-1" /> Missed
                     </Button>
                   </div>
@@ -140,7 +145,7 @@ export default function Medications() {
       </div>
 
       <div>
-        <h2 className="text-sm font-semibold mb-3 text-muted-foreground uppercase tracking-wider">Upload Prescription</h2>
+        <h2 className="text-sm font-semibold mb-3 text-muted-foreground uppercase tracking-wider flex items-center gap-2"><span className="w-1 h-4 rounded-full bg-primary inline-block" />Upload Prescription</h2>
         {!showUpload ? (
           <Button variant="secondary" onClick={() => setShowUpload(true)} className="w-full h-auto py-4" data-testid="button-upload-prescription">
             <Upload className="w-5 h-5 mr-2" />
@@ -151,11 +156,11 @@ export default function Medications() {
             <CardContent className="p-4 space-y-4">
               {!uploadPreview ? (
                 <div
-                  className="border-2 border-dashed border-border rounded-md p-8 text-center cursor-pointer transition-colors"
+                  className="border-2 border-dashed border-primary/30 rounded-xl p-8 text-center cursor-pointer transition-colors bg-gradient-to-br from-primary/5 to-primary/10 dark:from-primary/5 dark:to-primary/10"
                   onClick={() => setUploadPreview(true)}
                   data-testid="dropzone-prescription"
                 >
-                  <Camera className="w-8 h-8 mx-auto text-muted-foreground mb-2" />
+                  <Camera className="w-8 h-8 mx-auto text-primary/60 mb-2" />
                   <p className="text-sm font-medium">Drop image here or tap to upload</p>
                   <p className="text-xs text-muted-foreground mt-1">Supports JPG, PNG, PDF</p>
                 </div>

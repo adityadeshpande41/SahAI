@@ -76,13 +76,13 @@ export default function Symptoms() {
   return (
     <div className="space-y-5 animate-fade-in">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight" data-testid="text-symptoms-title">Symptoms & Activity</h1>
+        <h1 className="text-2xl font-bold tracking-tight text-gradient" data-testid="text-symptoms-title">Symptoms & Activity</h1>
         <p className="text-sm text-muted-foreground mt-1">Log how you're feeling and what you're doing</p>
       </div>
 
       <div>
-        <h2 className="text-sm font-semibold mb-3 text-muted-foreground uppercase tracking-wider">Log a Symptom</h2>
-        <Card data-testid="card-log-symptom">
+        <h2 className="text-sm font-semibold mb-3 text-muted-foreground uppercase tracking-wider flex items-center gap-2"><span className="w-1 h-4 rounded-full bg-primary inline-block" />Log a Symptom</h2>
+        <Card className="card-elevated" data-testid="card-log-symptom">
           <CardContent className="p-4 space-y-4">
             <div className="flex flex-wrap gap-2">
               {symptomQuickOptions.map(s => (
@@ -99,11 +99,12 @@ export default function Symptoms() {
               ))}
             </div>
             {selectedSymptom && (
-              <div className="space-y-3 animate-slide-up">
+              <div className="space-y-3 animate-scale-in">
                 <div className="space-y-2">
                   <div className="flex items-center justify-between gap-1">
                     <Label className="text-sm">Severity</Label>
-                    <span className={`text-sm font-medium ${severityColors[severity[0]]}`}>
+                    <span className={`text-sm font-medium tabular-nums flex items-center gap-1.5 ${severityColors[severity[0]]}`}>
+                      <span className={`w-2 h-2 rounded-full inline-block ${severity[0] <= 2 ? "bg-emerald-500" : severity[0] <= 3 ? "bg-amber-500" : severity[0] <= 4 ? "bg-orange-500" : "bg-red-500"}`} />
                       {severity[0]}/5 - {severityLabels[severity[0]]}
                     </span>
                   </div>
@@ -138,8 +139,8 @@ export default function Symptoms() {
       </div>
 
       <div>
-        <h2 className="text-sm font-semibold mb-3 text-muted-foreground uppercase tracking-wider">Current Activity</h2>
-        <Card data-testid="card-activity">
+        <h2 className="text-sm font-semibold mb-3 text-muted-foreground uppercase tracking-wider flex items-center gap-2"><span className="w-1 h-4 rounded-full bg-primary inline-block" />Current Activity</h2>
+        <Card className="card-elevated" data-testid="card-activity">
           <CardContent className="p-4">
             <div className="flex items-center gap-3 mb-3">
               <div className="w-10 h-10 rounded-md bg-primary/10 dark:bg-primary/20 flex items-center justify-center">
@@ -172,7 +173,7 @@ export default function Symptoms() {
         </Card>
       </div>
 
-      <Card className="bg-amber-50/50 dark:bg-amber-950/10 border-amber-200 dark:border-amber-800" data-testid="card-pattern-insight">
+      <Card className="card-elevated bg-gradient-to-br from-amber-50/80 to-orange-50/50 dark:from-amber-950/20 dark:to-orange-950/10 border-amber-200 dark:border-amber-800" data-testid="card-pattern-insight">
         <CardContent className="p-4">
           <div className="flex items-start gap-3">
             <TrendingUp className="w-5 h-5 text-amber-600 dark:text-amber-400 mt-0.5 flex-shrink-0" />
@@ -187,7 +188,7 @@ export default function Symptoms() {
       </Card>
 
       <div>
-        <h2 className="text-sm font-semibold mb-3 text-muted-foreground uppercase tracking-wider">Recent Symptoms</h2>
+        <h2 className="text-sm font-semibold mb-3 text-muted-foreground uppercase tracking-wider flex items-center gap-2"><span className="w-1 h-4 rounded-full bg-primary inline-block" />Recent Symptoms</h2>
         <div className="space-y-2">
           {symptoms.slice(0, 5).map(s => (
             <div key={s.id} className="flex items-center gap-3 py-2 px-3 rounded-md bg-card" data-testid={`item-symptom-${s.id}`}>
@@ -207,7 +208,7 @@ export default function Symptoms() {
       </div>
 
       <div>
-        <h2 className="text-sm font-semibold mb-3 text-muted-foreground uppercase tracking-wider">Recent Activity</h2>
+        <h2 className="text-sm font-semibold mb-3 text-muted-foreground uppercase tracking-wider flex items-center gap-2"><span className="w-1 h-4 rounded-full bg-primary inline-block" />Recent Activity</h2>
         <div className="space-y-2">
           {activities.slice(0, 5).map(a => {
             const Icon = activityIcons[a.activity] || Activity;

@@ -130,7 +130,7 @@ export default function Voice() {
     <div className="flex flex-col h-[calc(100vh-8rem)] md:h-[calc(100vh-6rem)] animate-fade-in">
       <div className="flex items-center justify-between gap-1 mb-4">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight" data-testid="text-voice-title">Talk to SahAI</h1>
+          <h1 className="text-2xl font-bold tracking-tight text-gradient" data-testid="text-voice-title">Talk to SahAI</h1>
           <p className="text-sm text-muted-foreground mt-0.5">Your health conversation assistant</p>
         </div>
         <div className="flex items-center gap-2">
@@ -154,7 +154,7 @@ export default function Voice() {
         ))}
       </div>
 
-      <Card className="flex-1 flex flex-col min-h-0">
+      <Card className="glass flex-1 flex flex-col min-h-0">
         <ScrollArea className="flex-1 p-4" ref={scrollRef}>
           <div className="space-y-4">
             {messages.map(msg => (
@@ -209,13 +209,13 @@ export default function Voice() {
           </div>
         </ScrollArea>
         {lastParsedEvent && (
-          <div className="px-4 py-2 border-t border-border bg-muted/50" data-testid="card-parsed-event">
+          <div className="px-4 py-2 border-t border-border bg-gradient-to-r from-primary/5 to-transparent dark:from-primary/10 dark:to-transparent animate-slide-in-right" data-testid="card-parsed-event">
             <div className="flex items-center gap-2 text-xs">
               <Sparkles className="w-3 h-3 text-primary flex-shrink-0" />
               <span className="text-muted-foreground">Parsed:</span>
               <Badge variant="secondary" className="text-xs no-default-active-elevate">{lastParsedEvent.type}</Badge>
               <span className="text-muted-foreground">—</span>
-              <span className={lastParsedEvent.confidence < 0.7 ? "text-amber-600 dark:text-amber-400" : "text-emerald-600 dark:text-emerald-400"}>
+              <span className={`tabular-nums ${lastParsedEvent.confidence < 0.7 ? "text-amber-600 dark:text-amber-400" : "text-emerald-600 dark:text-emerald-400"}`}>
                 {Math.round(lastParsedEvent.confidence * 100)}% conf
               </span>
               {lastParsedEvent.confidence < 0.7 && (
@@ -226,7 +226,7 @@ export default function Voice() {
             </div>
           </div>
         )}
-        <div className="p-3 border-t border-border">
+        <div className="p-3 border-t border-border glass-subtle">
           <div className="flex items-center gap-2">
             <Button size="icon" variant="secondary" aria-label="Voice input" data-testid="button-mic">
               <Mic className="w-4 h-4" />
@@ -239,7 +239,7 @@ export default function Voice() {
               className="flex-1 text-sm"
               data-testid="input-chat"
             />
-            <Button size="icon" onClick={() => sendMessage(inputText)} disabled={!inputText.trim()} aria-label="Send message" data-testid="button-send">
+            <Button size="icon" onClick={() => sendMessage(inputText)} disabled={!inputText.trim()} aria-label="Send message" className="active:scale-[0.97]" data-testid="button-send">
               <Send className="w-4 h-4" />
             </Button>
           </div>

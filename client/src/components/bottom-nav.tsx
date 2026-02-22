@@ -33,62 +33,84 @@ export function BottomNav() {
   const isMoreActive = moreItems.some(i => location === i.url || (i.url !== "/" && location.startsWith(i.url)));
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 bg-card border-t border-border" role="navigation" aria-label="Main navigation" data-testid="nav-bottom">
-      <div className="flex items-center justify-around h-16 px-2 max-w-lg mx-auto">
-        {mainItems.map((item) => {
-          const isActive = location === item.url;
-          return (
-            <Link key={item.title} href={item.url} data-testid={`link-bottom-${item.title.toLowerCase()}`}>
+    <nav className="fixed bottom-3 left-3 right-3 z-50" role="navigation" aria-label="Main navigation" data-testid="nav-bottom">
+      <div className="glass floating-nav rounded-2xl border border-border/50 px-2 py-1.5 max-w-md mx-auto">
+        <div className="flex items-center justify-around">
+          {mainItems.map((item) => {
+            const isActive = location === item.url;
+            return (
+              <Link key={item.title} href={item.url} data-testid={`link-bottom-${item.title.toLowerCase()}`}>
+                <button
+                  className={`relative flex flex-col items-center gap-0.5 px-4 py-2 rounded-xl transition-all duration-300 min-w-[52px] ${
+                    isActive
+                      ? "text-primary"
+                      : "text-muted-foreground active:scale-95"
+                  }`}
+                  aria-label={item.title}
+                  aria-current={isActive ? "page" : undefined}
+                >
+                  {isActive && (
+                    <div className="absolute inset-0 bg-primary/8 dark:bg-primary/12 rounded-xl nav-indicator" />
+                  )}
+                  <item.icon className={`w-5 h-5 relative z-10 transition-transform duration-200 ${isActive ? "scale-110" : ""}`} />
+                  <span className={`text-[10px] font-medium relative z-10 ${isActive ? "font-semibold" : ""}`}>{item.title}</span>
+                  {isActive && (
+                    <div className="absolute -top-0.5 left-1/2 -translate-x-1/2 w-4 h-0.5 rounded-full bg-primary" />
+                  )}
+                </button>
+              </Link>
+            );
+          })}
+          <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
+            <SheetTrigger asChild>
               <button
-                className={`flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-md transition-colors min-w-[56px] ${
-                  isActive ? "text-primary" : "text-muted-foreground"
+                className={`relative flex flex-col items-center gap-0.5 px-4 py-2 rounded-xl transition-all duration-300 min-w-[52px] ${
+                  isMoreActive ? "text-primary" : "text-muted-foreground active:scale-95"
                 }`}
-                aria-label={item.title}
-                aria-current={isActive ? "page" : undefined}
+                aria-label="More options"
+                data-testid="button-more-nav"
               >
-                <item.icon className="w-5 h-5" />
-                <span className="text-[10px] font-medium">{item.title}</span>
+                {isMoreActive && (
+                  <div className="absolute inset-0 bg-primary/8 dark:bg-primary/12 rounded-xl nav-indicator" />
+                )}
+                <MoreHorizontal className={`w-5 h-5 relative z-10 ${isMoreActive ? "scale-110" : ""}`} />
+                <span className={`text-[10px] font-medium relative z-10 ${isMoreActive ? "font-semibold" : ""}`}>More</span>
+                {isMoreActive && (
+                  <div className="absolute -top-0.5 left-1/2 -translate-x-1/2 w-4 h-0.5 rounded-full bg-primary" />
+                )}
               </button>
-            </Link>
-          );
-        })}
-        <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
-          <SheetTrigger asChild>
-            <button
-              className={`flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-md transition-colors min-w-[56px] ${
-                isMoreActive ? "text-primary" : "text-muted-foreground"
-              }`}
-              aria-label="More options"
-              data-testid="button-more-nav"
-            >
-              <MoreHorizontal className="w-5 h-5" />
-              <span className="text-[10px] font-medium">More</span>
-            </button>
-          </SheetTrigger>
-          <SheetContent side="bottom" className="rounded-t-xl">
-            <SheetHeader>
-              <SheetTitle>More</SheetTitle>
-            </SheetHeader>
-            <div className="grid grid-cols-2 gap-3 py-4">
-              {moreItems.map((item) => {
-                const isActive = location === item.url;
-                return (
-                  <Link key={item.title} href={item.url} data-testid={`link-more-${item.title.toLowerCase()}`}>
-                    <button
-                      onClick={() => setSheetOpen(false)}
-                      className={`flex items-center gap-3 w-full p-3 rounded-md transition-colors ${
-                        isActive ? "bg-primary/10 text-primary" : "text-foreground"
-                      }`}
-                    >
-                      <item.icon className="w-5 h-5" />
-                      <span className="text-sm font-medium">{item.title}</span>
-                    </button>
-                  </Link>
-                );
-              })}
-            </div>
-          </SheetContent>
-        </Sheet>
+            </SheetTrigger>
+            <SheetContent side="bottom" className="rounded-t-2xl">
+              <SheetHeader>
+                <SheetTitle className="text-left">More</SheetTitle>
+              </SheetHeader>
+              <div className="grid grid-cols-2 gap-2 py-4">
+                {moreItems.map((item) => {
+                  const isActive = location === item.url;
+                  return (
+                    <Link key={item.title} href={item.url} data-testid={`link-more-${item.title.toLowerCase()}`}>
+                      <button
+                        onClick={() => setSheetOpen(false)}
+                        className={`flex items-center gap-3 w-full p-3.5 rounded-xl transition-all duration-200 ${
+                          isActive
+                            ? "bg-primary/10 text-primary font-medium shadow-sm"
+                            : "text-foreground hover:bg-muted active:scale-[0.98]"
+                        }`}
+                      >
+                        <div className={`w-9 h-9 rounded-lg flex items-center justify-center ${
+                          isActive ? "bg-primary/15" : "bg-muted"
+                        }`}>
+                          <item.icon className="w-4.5 h-4.5" />
+                        </div>
+                        <span className="text-sm">{item.title}</span>
+                      </button>
+                    </Link>
+                  );
+                })}
+              </div>
+            </SheetContent>
+          </Sheet>
+        </div>
       </div>
     </nav>
   );

@@ -56,23 +56,23 @@ export default function Meals() {
   return (
     <div className="space-y-5 animate-fade-in">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight" data-testid="text-meals-title">Meals & Nutrition</h1>
+        <h1 className="text-2xl font-bold tracking-tight text-gradient" data-testid="text-meals-title">Meals & Nutrition</h1>
         <p className="text-sm text-muted-foreground mt-1">Track your meals and hydration</p>
       </div>
 
-      <Card data-testid="card-nutrition-summary">
+      <Card className="card-elevated" data-testid="card-nutrition-summary">
         <CardContent className="p-4">
-          <div className="grid grid-cols-3 gap-4 text-center">
-            <div>
-              <p className="text-xl font-bold text-primary">1</p>
+          <div className="grid grid-cols-3 gap-3 text-center">
+            <div className="rounded-xl bg-primary/8 dark:bg-primary/15 p-3">
+              <p className="text-xl font-bold text-primary tabular-nums">1</p>
               <p className="text-xs text-muted-foreground">Meals logged</p>
             </div>
-            <div>
-              <p className="text-xl font-bold text-sky-600 dark:text-sky-400">2</p>
+            <div className="rounded-xl bg-sky-500/8 dark:bg-sky-500/15 p-3">
+              <p className="text-xl font-bold text-sky-600 dark:text-sky-400 tabular-nums">2</p>
               <p className="text-xs text-muted-foreground">Glasses water</p>
             </div>
-            <div>
-              <p className="text-xl font-bold text-amber-600 dark:text-amber-400">~420</p>
+            <div className="rounded-xl bg-amber-500/8 dark:bg-amber-500/15 p-3">
+              <p className="text-xl font-bold text-amber-600 dark:text-amber-400 tabular-nums">~420</p>
               <p className="text-xs text-muted-foreground">Est. calories</p>
             </div>
           </div>
@@ -80,12 +80,12 @@ export default function Meals() {
       </Card>
 
       <div>
-        <h2 className="text-sm font-semibold mb-3 text-muted-foreground uppercase tracking-wider">Today's Meals</h2>
+        <h2 className="text-sm font-semibold mb-3 text-muted-foreground uppercase tracking-wider flex items-center gap-2"><span className="w-1 h-4 rounded-full bg-primary inline-block" />Today's Meals</h2>
         <div className="space-y-3">
           {meals.map(meal => {
             const Icon = mealIcons[meal.type] || UtensilsCrossed;
             return (
-              <Card key={meal.id} data-testid={`card-meal-${meal.type}`}>
+              <Card key={meal.id} className="card-elevated" data-testid={`card-meal-${meal.type}`}>
                 <CardContent className="p-4">
                   <div className="flex items-start gap-3">
                     <div className={`w-10 h-10 rounded-md flex items-center justify-center flex-shrink-0 ${mealColors[meal.type]}`}>
@@ -163,7 +163,7 @@ export default function Meals() {
       </div>
 
       <div>
-        <h2 className="text-sm font-semibold mb-3 text-muted-foreground uppercase tracking-wider">Meal Photo Analysis</h2>
+        <h2 className="text-sm font-semibold mb-3 text-muted-foreground uppercase tracking-wider flex items-center gap-2"><span className="w-1 h-4 rounded-full bg-primary inline-block" />Meal Photo Analysis</h2>
         {!showPhotoDemo ? (
           <Button variant="secondary" className="w-full h-auto py-4" onClick={() => setShowPhotoDemo(true)} data-testid="button-upload-meal-photo">
             <Camera className="w-5 h-5 mr-2" /> Upload Meal Photo
@@ -223,7 +223,7 @@ export default function Meals() {
         </CardContent>
       </Card>
 
-      <Card className="bg-sky-50/50 dark:bg-sky-950/10 border-sky-200 dark:border-sky-800" data-testid="card-hydration-nudge">
+      <Card className="glass bg-sky-50/50 dark:bg-sky-950/10 border-sky-200 dark:border-sky-800" data-testid="card-hydration-nudge">
         <CardContent className="p-4">
           <div className="flex items-start gap-3">
             <Droplets className="w-5 h-5 text-sky-500 mt-0.5 flex-shrink-0" />

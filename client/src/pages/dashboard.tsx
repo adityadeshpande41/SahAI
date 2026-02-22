@@ -25,6 +25,8 @@ import {
   Activity,
   Home,
   Info,
+  Zap,
+  ArrowRight,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -41,9 +43,9 @@ import {
 import { Link } from "wouter";
 
 const twinStateConfig = {
-  routine: { color: "bg-emerald-500 dark:bg-emerald-400", label: "On Routine", textColor: "text-emerald-700 dark:text-emerald-300" },
-  drift: { color: "bg-amber-500 dark:bg-amber-400", label: "Drift Detected", textColor: "text-amber-700 dark:text-amber-300" },
-  concern: { color: "bg-red-500 dark:bg-red-400", label: "Higher Concern", textColor: "text-red-700 dark:text-red-300" },
+  routine: { color: "bg-emerald-500 dark:bg-emerald-400", label: "On Routine", textColor: "text-emerald-700 dark:text-emerald-300", ring: "ring-emerald-200 dark:ring-emerald-800", glow: "from-emerald-500/20" },
+  drift: { color: "bg-amber-500 dark:bg-amber-400", label: "Drift Detected", textColor: "text-amber-700 dark:text-amber-300", ring: "ring-amber-200 dark:ring-amber-800", glow: "from-amber-500/20" },
+  concern: { color: "bg-red-500 dark:bg-red-400", label: "Higher Concern", textColor: "text-red-700 dark:text-red-300", ring: "ring-red-200 dark:ring-red-800", glow: "from-red-500/20" },
 };
 
 const chipIcons: Record<string, typeof Pill> = {
@@ -55,16 +57,16 @@ const chipIcons: Record<string, typeof Pill> = {
 };
 
 const chipColors = {
-  warning: "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300",
-  caution: "bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300",
-  info: "bg-sky-100 text-sky-800 dark:bg-sky-900/30 dark:text-sky-300",
-  success: "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300",
+  warning: "bg-amber-100/80 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300 border border-amber-200/50 dark:border-amber-800/30",
+  caution: "bg-orange-100/80 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300 border border-orange-200/50 dark:border-orange-800/30",
+  info: "bg-sky-100/80 text-sky-800 dark:bg-sky-900/30 dark:text-sky-300 border border-sky-200/50 dark:border-sky-800/30",
+  success: "bg-emerald-100/80 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300 border border-emerald-200/50 dark:border-emerald-800/30",
 };
 
 const riskColors = {
-  low: { bg: "bg-emerald-50 dark:bg-emerald-950/30", border: "border-emerald-200 dark:border-emerald-800", badge: "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300" },
-  medium: { bg: "bg-amber-50 dark:bg-amber-950/30", border: "border-amber-200 dark:border-amber-800", badge: "bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300" },
-  high: { bg: "bg-red-50 dark:bg-red-950/30", border: "border-red-200 dark:border-red-800", badge: "bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300" },
+  low: { bg: "bg-emerald-50/80 dark:bg-emerald-950/30", border: "border-emerald-200/60 dark:border-emerald-800/40", badge: "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300" },
+  medium: { bg: "bg-amber-50/80 dark:bg-amber-950/30", border: "border-amber-200/60 dark:border-amber-800/40", badge: "bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300" },
+  high: { bg: "bg-red-50/80 dark:bg-red-950/30", border: "border-red-200/60 dark:border-red-800/40", badge: "bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300" },
 };
 
 export default function Dashboard() {
@@ -89,40 +91,55 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-5 animate-fade-in">
-      <div className="flex flex-col gap-1">
-        <h1 className="text-2xl font-bold tracking-tight" data-testid="text-greeting">
-          {getGreeting()}, {userProfile.name}
-        </h1>
-        <p className="text-sm text-muted-foreground" data-testid="text-date">{getCurrentDate()}</p>
+      <div className="flex items-end justify-between gap-2">
+        <div className="flex flex-col gap-0.5">
+          <h1 className="text-2xl font-bold tracking-tight" data-testid="text-greeting">
+            {getGreeting()}, <span className="text-gradient">{userProfile.name}</span>
+          </h1>
+          <p className="text-sm text-muted-foreground" data-testid="text-date">{getCurrentDate()}</p>
+        </div>
+        <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-muted/60 text-xs text-muted-foreground">
+          <CloudSun className="w-3.5 h-3.5 text-amber-500" />
+          <span>{weatherData.temp}</span>
+        </div>
       </div>
 
-      <Card className="relative border-0 bg-gradient-to-br from-primary/8 via-card to-primary/4 dark:from-primary/12 dark:via-card dark:to-primary/6" data-testid="card-twin">
-        <CardContent className="p-5">
+      <Card className="relative overflow-hidden border-0 card-elevated" data-testid="card-twin">
+        <div className="absolute inset-0 bg-gradient-to-br from-primary/6 via-transparent to-primary/4 dark:from-primary/10 dark:via-transparent dark:to-primary/8" />
+        <div className={`absolute top-0 right-0 w-40 h-40 bg-gradient-radial ${config.glow} to-transparent opacity-60 blur-2xl`} />
+        <CardContent className="relative p-5">
           <div className="flex items-start gap-4">
             <div className="relative flex-shrink-0">
-              <div className="w-16 h-16 rounded-xl bg-primary/15 dark:bg-primary/25 flex items-center justify-center">
-                <Heart className="w-8 h-8 text-primary animate-gentle-pulse" />
+              <div className="relative w-16 h-16">
+                <div className="absolute inset-0 rounded-2xl bg-primary/10 dark:bg-primary/20 animate-gentle-pulse" />
+                <div className="absolute inset-0 rounded-2xl bg-primary/5 animate-pulse-ring" />
+                <div className="relative w-full h-full rounded-2xl bg-gradient-to-br from-primary/20 to-primary/5 dark:from-primary/30 dark:to-primary/10 flex items-center justify-center">
+                  <Heart className="w-7 h-7 text-primary" />
+                </div>
+                <div className="absolute w-3 h-3 rounded-full bg-primary/40 animate-orbit" style={{ top: "50%", left: "50%", marginTop: "-6px", marginLeft: "-6px" }}>
+                  <Zap className="w-3 h-3 text-primary" />
+                </div>
               </div>
-              <div className={`absolute -bottom-1 -right-1 w-4 h-4 rounded-full ${config.color} ring-2 ring-card`} />
+              <div className={`absolute -bottom-1 -right-1 w-4 h-4 rounded-full ${config.color} ring-2 ring-card shadow-sm`} />
             </div>
             <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2 flex-wrap mb-1.5">
-                <h2 className="font-semibold text-base">Your Routine Twin</h2>
-                <Badge variant="secondary" className={`text-xs no-default-active-elevate ${config.textColor}`}>
+              <div className="flex items-center gap-2 flex-wrap mb-1">
+                <h2 className="font-bold text-base">Your Routine Twin</h2>
+                <Badge variant="secondary" className={`text-[10px] no-default-active-elevate ${config.textColor} px-2`}>
                   {config.label}
                 </Badge>
               </div>
               <p className="text-sm text-muted-foreground leading-relaxed" data-testid="text-twin-status">
                 {twinState.message}
               </p>
-              <div className="mt-3 flex items-center gap-2">
-                <div className="flex-1 h-2 rounded-full bg-muted">
+              <div className="mt-3 flex items-center gap-2.5">
+                <div className="flex-1 h-2.5 rounded-full bg-muted/80 overflow-hidden">
                   <div
-                    className="h-full rounded-full bg-primary transition-all duration-500"
+                    className="h-full rounded-full bg-gradient-to-r from-primary to-primary/70 transition-all duration-1000 ease-out"
                     style={{ width: `${twinState.score}%` }}
                   />
                 </div>
-                <span className="text-xs font-medium text-muted-foreground">{twinState.score}%</span>
+                <span className="text-xs font-bold text-primary tabular-nums">{twinState.score}%</span>
               </div>
             </div>
           </div>
@@ -135,7 +152,7 @@ export default function Dashboard() {
           return (
             <div
               key={chip.id}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap ${chipColors[chip.type]}`}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap ${chipColors[chip.type]} shadow-sm`}
               data-testid={`chip-${chip.id}`}
             >
               <Icon className="w-3.5 h-3.5" />
@@ -143,55 +160,56 @@ export default function Dashboard() {
             </div>
           );
         })}
-        <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap bg-sky-100 text-sky-800 dark:bg-sky-900/30 dark:text-sky-300">
-          <CloudSun className="w-3.5 h-3.5" />
-          {weatherData.temp} {weatherData.condition}
-        </div>
       </div>
 
       <div>
-        <h3 className="text-sm font-semibold mb-3 text-muted-foreground uppercase tracking-wider">Quick Actions</h3>
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3" data-testid="quick-actions">
+        <h3 className="text-xs font-semibold mb-3 text-muted-foreground uppercase tracking-wider flex items-center gap-2">
+          <Zap className="w-3 h-3" />
+          Quick Actions
+        </h3>
+        <div className="grid grid-cols-3 gap-2.5" data-testid="quick-actions">
           {[
-            { key: "tookMeds" as const, label: "I took meds", icon: Pill, color: "text-emerald-600 dark:text-emerald-400" },
-            { key: "ate" as const, label: "I ate", icon: UtensilsCrossed, color: "text-amber-600 dark:text-amber-400" },
-            { key: "feelUnwell" as const, label: "I feel unwell", icon: Frown, color: "text-red-500 dark:text-red-400" },
-            { key: "goingOut" as const, label: "Going out", icon: DoorOpen, color: "text-sky-600 dark:text-sky-400" },
-          ].map(({ key, label, icon: Icon, color }) => (
+            { key: "tookMeds" as const, label: "I took meds", icon: Pill, color: "text-emerald-600 dark:text-emerald-400", bg: "bg-emerald-50 dark:bg-emerald-950/20" },
+            { key: "ate" as const, label: "I ate", icon: UtensilsCrossed, color: "text-amber-600 dark:text-amber-400", bg: "bg-amber-50 dark:bg-amber-950/20" },
+            { key: "feelUnwell" as const, label: "Feel unwell", icon: Frown, color: "text-red-500 dark:text-red-400", bg: "bg-red-50 dark:bg-red-950/20" },
+            { key: "goingOut" as const, label: "Going out", icon: DoorOpen, color: "text-sky-600 dark:text-sky-400", bg: "bg-sky-50 dark:bg-sky-950/20" },
+          ].map(({ key, label, icon: Icon, color, bg }) => (
             <Button
               key={key}
               variant={quickActions[key] ? "default" : "secondary"}
-              className={`h-auto py-4 flex-col gap-2 ${!quickActions[key] ? color : ""}`}
+              className={`h-auto py-3.5 flex-col gap-1.5 rounded-xl transition-all duration-200 ${
+                !quickActions[key] ? `${color} ${bg} border-0 hover:shadow-sm active:scale-[0.97]` : "shadow-sm"
+              }`}
               onClick={() => handleQuickAction(key, label)}
               data-testid={`button-${key}`}
             >
               {quickActions[key] ? <Check className="w-5 h-5" /> : <Icon className="w-5 h-5" />}
-              <span className="text-xs font-medium">{label}</span>
+              <span className="text-[11px] font-medium leading-tight">{label}</span>
             </Button>
           ))}
           <Link href="/voice">
-            <Button variant="secondary" className="h-auto py-4 flex-col gap-2 w-full text-primary" data-testid="button-talk-sahai">
+            <Button variant="secondary" className="h-auto py-3.5 flex-col gap-1.5 w-full rounded-xl text-primary bg-primary/5 dark:bg-primary/10 border-0 hover:shadow-sm active:scale-[0.97]" data-testid="button-talk-sahai">
               <MessageCircle className="w-5 h-5" />
-              <span className="text-xs font-medium">Talk to SahAI</span>
+              <span className="text-[11px] font-medium leading-tight">Talk to SahAI</span>
             </Button>
           </Link>
-          <Link href="/dashboard">
-            <Button variant="secondary" className="h-auto py-4 flex-col gap-2 w-full text-muted-foreground" data-testid="button-explain">
+          <Link href="/insights">
+            <Button variant="secondary" className="h-auto py-3.5 flex-col gap-1.5 w-full rounded-xl text-muted-foreground bg-muted/40 border-0 hover:shadow-sm active:scale-[0.97]" data-testid="button-explain">
               <HelpCircle className="w-5 h-5" />
-              <span className="text-xs font-medium">Explain simply</span>
+              <span className="text-[11px] font-medium leading-tight">Explain</span>
             </Button>
           </Link>
         </div>
       </div>
 
-      <Card className={`border ${risk.border} ${risk.bg}`} data-testid="card-risk">
+      <Card className={`border ${risk.border} ${risk.bg} card-elevated`} data-testid="card-risk">
         <CardHeader className="pb-2">
           <div className="flex items-center justify-between gap-1">
             <div className="flex items-center gap-2">
               <ShieldAlert className="w-4 h-4 text-muted-foreground" />
               <CardTitle className="text-sm font-semibold">Live Situation Guard</CardTitle>
             </div>
-            <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${risk.badge}`}>
+            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${risk.badge}`}>
               {riskGuidance.level.charAt(0).toUpperCase() + riskGuidance.level.slice(1)} Risk
             </span>
           </div>
@@ -199,30 +217,30 @@ export default function Dashboard() {
         <CardContent className="space-y-3">
           <div className="space-y-2">
             <div>
-              <p className="text-xs font-medium text-muted-foreground mb-0.5">What's unusual</p>
+              <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-0.5">What's unusual</p>
               <p className="text-sm" data-testid="text-risk-unusual">{riskGuidance.unusual}</p>
             </div>
-            <div>
-              <p className="text-xs font-medium text-muted-foreground mb-0.5">What to do</p>
+            <div className="p-2.5 rounded-lg bg-background/60 dark:bg-background/30 border border-border/30">
+              <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-0.5">What to do</p>
               <p className="text-sm font-medium" data-testid="text-risk-action">{riskGuidance.action}</p>
             </div>
           </div>
           <Accordion type="single" collapsible className="w-full">
             <AccordionItem value="why" className="border-0">
-              <AccordionTrigger className="py-2 text-xs font-medium text-muted-foreground" data-testid="button-why-flagged">
+              <AccordionTrigger className="py-2 text-xs font-medium text-muted-foreground hover:text-foreground" data-testid="button-why-flagged">
                 Why SahAI flagged this
               </AccordionTrigger>
               <AccordionContent>
-                <div className="space-y-2 text-sm">
+                <div className="space-y-2.5 text-sm">
                   <div>
-                    <p className="text-xs font-medium text-muted-foreground mb-0.5">Baseline</p>
+                    <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-0.5">Baseline</p>
                     <p>{riskGuidance.baseline}</p>
                   </div>
                   <div>
-                    <p className="text-xs font-medium text-muted-foreground mb-0.5">Triggers</p>
-                    <ul className="space-y-1">
+                    <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-0.5">Triggers</p>
+                    <ul className="space-y-1.5">
                       {riskGuidance.triggers.map((t, i) => (
-                        <li key={i} className="flex items-start gap-1.5">
+                        <li key={i} className="flex items-start gap-2">
                           <AlertTriangle className="w-3 h-3 mt-0.5 text-amber-500 dark:text-amber-400 flex-shrink-0" />
                           <span>{t}</span>
                         </li>
@@ -230,7 +248,7 @@ export default function Dashboard() {
                     </ul>
                   </div>
                   <div>
-                    <p className="text-xs font-medium text-muted-foreground mb-0.5">Why it matters</p>
+                    <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-0.5">Why it matters</p>
                     <p>{riskGuidance.why}</p>
                   </div>
                 </div>
@@ -240,50 +258,45 @@ export default function Dashboard() {
         </CardContent>
       </Card>
 
-      <Card className="border-dashed" data-testid="card-context-snapshot">
-        <CardContent className="p-4">
-          <div className="flex items-center gap-2 mb-2">
-            <Info className="w-3.5 h-3.5 text-muted-foreground" />
-            <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Context Snapshot</span>
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5" data-testid="card-context-snapshot">
+        {[
+          { icon: Home, label: contextSnapshot.location, color: "text-emerald-500", bg: "bg-emerald-50 dark:bg-emerald-950/20" },
+          { icon: CloudSun, label: contextSnapshot.weather, color: "text-amber-500", bg: "bg-amber-50 dark:bg-amber-950/20" },
+          { icon: Activity, label: contextSnapshot.activity, color: "text-sky-500", bg: "bg-sky-50 dark:bg-sky-950/20" },
+        ].map(({ icon: Icon, label, color, bg }, i) => (
+          <div key={i} className={`flex items-center gap-2 p-3 rounded-xl ${bg} border border-border/30`}>
+            <Icon className={`w-4 h-4 ${color} flex-shrink-0`} />
+            <span className="text-xs font-medium truncate">{label}</span>
           </div>
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-xs">
-            <div className="flex items-center gap-1.5">
-              <Home className="w-3 h-3 text-emerald-500" />
-              <span>{contextSnapshot.location}</span>
-            </div>
-            <div className="flex items-center gap-1.5">
-              <CloudSun className="w-3 h-3 text-amber-500" />
-              <span>{contextSnapshot.weather}</span>
-            </div>
-            <div className="flex items-center gap-1.5">
-              <Activity className="w-3 h-3 text-sky-500" />
-              <span>{contextSnapshot.activity}</span>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+        ))}
+      </div>
 
-      <Card data-testid="card-weekly-snapshot">
+      <Card className="card-elevated" data-testid="card-weekly-snapshot">
         <CardHeader className="pb-2">
-          <div className="flex items-center gap-2">
-            <TrendingUp className="w-4 h-4 text-muted-foreground" />
-            <CardTitle className="text-sm font-semibold">This Week</CardTitle>
+          <div className="flex items-center justify-between gap-1">
+            <div className="flex items-center gap-2">
+              <TrendingUp className="w-4 h-4 text-primary" />
+              <CardTitle className="text-sm font-semibold">This Week</CardTitle>
+            </div>
+            <Link href="/insights">
+              <Button variant="ghost" size="sm" className="text-xs text-muted-foreground h-auto py-1 px-2">
+                Details <ArrowRight className="w-3 h-3 ml-1" />
+              </Button>
+            </Link>
           </div>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-3 gap-4">
-            <div className="text-center">
-              <p className="text-2xl font-bold text-primary">{weeklyInsights.medAdherence}%</p>
-              <p className="text-xs text-muted-foreground mt-0.5">Med Adherence</p>
-            </div>
-            <div className="text-center">
-              <p className="text-2xl font-bold text-primary">{weeklyInsights.mealsLogged}/{weeklyInsights.totalMeals}</p>
-              <p className="text-xs text-muted-foreground mt-0.5">Meals Logged</p>
-            </div>
-            <div className="text-center">
-              <p className="text-2xl font-bold text-primary">{weeklyInsights.symptomsReported}</p>
-              <p className="text-xs text-muted-foreground mt-0.5">Symptoms</p>
-            </div>
+          <div className="grid grid-cols-3 gap-3">
+            {[
+              { value: `${weeklyInsights.medAdherence}%`, label: "Med Adherence", color: "text-primary" },
+              { value: `${weeklyInsights.mealsLogged}/${weeklyInsights.totalMeals}`, label: "Meals Logged", color: "text-amber-600 dark:text-amber-400" },
+              { value: `${weeklyInsights.symptomsReported}`, label: "Symptoms", color: "text-red-500 dark:text-red-400" },
+            ].map(({ value, label, color }, i) => (
+              <div key={i} className="text-center p-3 rounded-xl bg-muted/40">
+                <p className={`text-xl font-bold ${color} tabular-nums`}>{value}</p>
+                <p className="text-[10px] text-muted-foreground mt-0.5 font-medium">{label}</p>
+              </div>
+            ))}
           </div>
         </CardContent>
       </Card>

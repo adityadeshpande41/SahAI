@@ -38,11 +38,11 @@ export default function Settings() {
   return (
     <div className="space-y-5 animate-fade-in">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight" data-testid="text-settings-title">Settings</h1>
+        <h1 className="text-2xl font-bold tracking-tight text-gradient" data-testid="text-settings-title">Settings</h1>
         <p className="text-sm text-muted-foreground mt-1">Customize your SahAI experience</p>
       </div>
 
-      <Card data-testid="card-theme">
+      <Card className="card-elevated" data-testid="card-theme">
         <CardHeader className="pb-2">
           <CardTitle className="text-sm font-semibold flex items-center gap-2">
             <Sun className="w-4 h-4" /> Appearance
@@ -54,7 +54,7 @@ export default function Settings() {
               <Button
                 key={opt.value}
                 variant={theme === opt.value ? "default" : "secondary"}
-                className="h-auto py-3 flex-col gap-1.5"
+                className="h-auto py-3.5 flex-col gap-1.5 rounded-xl active:scale-[0.97]"
                 onClick={() => setTheme(opt.value)}
                 data-testid={`button-theme-${opt.value}`}
               >
@@ -66,7 +66,7 @@ export default function Settings() {
         </CardContent>
       </Card>
 
-      <Card data-testid="card-accessibility">
+      <Card className="card-elevated" data-testid="card-accessibility">
         <CardHeader className="pb-2">
           <CardTitle className="text-sm font-semibold flex items-center gap-2">
             <Eye className="w-4 h-4" /> Accessibility
@@ -97,7 +97,7 @@ export default function Settings() {
         </CardContent>
       </Card>
 
-      <Card data-testid="card-voice-settings">
+      <Card className="card-elevated" data-testid="card-voice-settings">
         <CardHeader className="pb-2">
           <CardTitle className="text-sm font-semibold flex items-center gap-2">
             <Volume2 className="w-4 h-4" /> Voice & Speech
@@ -125,7 +125,7 @@ export default function Settings() {
         </CardContent>
       </Card>
 
-      <Card data-testid="card-language">
+      <Card className="card-elevated" data-testid="card-language">
         <CardHeader className="pb-2">
           <CardTitle className="text-sm font-semibold flex items-center gap-2">
             <Languages className="w-4 h-4" /> Language
@@ -152,6 +152,7 @@ export default function Settings() {
           data-testid="button-reset"
         >
           <RefreshCw className="w-4 h-4 mr-1" /> Reset All
+        
         </Button>
       </div>
     </div>

@@ -42,11 +42,11 @@ export default function Caregiver() {
   return (
     <div className="space-y-5 animate-fade-in">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight" data-testid="text-caregiver-title">Caregiver</h1>
+        <h1 className="text-2xl font-bold tracking-tight text-gradient" data-testid="text-caregiver-title">Caregiver</h1>
         <p className="text-sm text-muted-foreground mt-1">Manage caregiver access and alerts</p>
       </div>
 
-      <Card data-testid="card-caregiver-info">
+      <Card className="card-elevated" data-testid="card-caregiver-info">
         <CardHeader className="pb-2">
           <CardTitle className="text-sm font-semibold flex items-center gap-2">
             <User className="w-4 h-4" /> Caregiver Contact
@@ -71,7 +71,7 @@ export default function Caregiver() {
         </CardContent>
       </Card>
 
-      <Card data-testid="card-privacy">
+      <Card className="card-elevated" data-testid="card-privacy">
         <CardHeader className="pb-2">
           <CardTitle className="text-sm font-semibold flex items-center gap-2">
             <Shield className="w-4 h-4" /> Privacy Controls
@@ -80,7 +80,7 @@ export default function Caregiver() {
         <CardContent>
           <RadioGroup value={privacyLevel} onValueChange={setPrivacyLevel} className="space-y-3">
             {privacyOptions.map(opt => (
-              <div key={opt.value} className="flex items-start gap-3">
+              <div key={opt.value} className="flex items-start gap-3 rounded-xl p-3 -mx-3 transition-colors hover:bg-muted/50">
                 <RadioGroupItem value={opt.value} id={opt.value} className="mt-0.5" data-testid={`radio-privacy-${opt.value}`} />
                 <label htmlFor={opt.value} className="flex-1 cursor-pointer">
                   <p className="text-sm font-medium">{opt.label}</p>
@@ -92,7 +92,7 @@ export default function Caregiver() {
         </CardContent>
       </Card>
 
-      <Card data-testid="card-summary-preview">
+      <Card className="card-elevated" data-testid="card-summary-preview">
         <CardHeader className="pb-2">
           <CardTitle className="text-sm font-semibold flex items-center gap-2">
             <Bell className="w-4 h-4" /> Caregiver Summary Preview
@@ -126,7 +126,7 @@ export default function Caregiver() {
         </CardContent>
       </Card>
 
-      <Card data-testid="card-alert-simulation">
+      <Card className="card-elevated" data-testid="card-alert-simulation">
         <CardHeader className="pb-2">
           <CardTitle className="text-sm font-semibold flex items-center gap-2">
             <AlertTriangle className="w-4 h-4" /> Alert Simulation
@@ -138,7 +138,7 @@ export default function Caregiver() {
             Simulate High-Risk Alert
           </Button>
           {showAlert && (
-            <div className="animate-slide-up rounded-md bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-800 p-4 space-y-2" data-testid="card-alert-preview">
+            <div className="animate-scale-in rounded-xl bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-800 p-4 space-y-2 shadow-sm" data-testid="card-alert-preview">
               <div className="flex items-center gap-2">
                 <AlertTriangle className="w-5 h-5 text-red-600 dark:text-red-400" />
                 <span className="font-semibold text-sm text-red-800 dark:text-red-300">High-Risk Alert</span>
