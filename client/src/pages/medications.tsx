@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -17,38 +18,57 @@ import {
   Languages,
   MessageSquare,
   HelpCircle,
+  Loader2,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { medications as initialMeds, prescriptionExplanation, type Medication } from "@/lib/mock-data";
+import { useTodayMedications, useMarkMedicationTaken, useSnoozeMedication, useUploadPrescription, useMedicationAdherence } from "@/hooks/use-api";
 
 export default function Medications() {
   const { toast } = useToast();
-  const [meds, setMeds] = useState<Medication[]>(initialMeds);
+  const queryClient = useQueryClient();
+  const { data: meds, isLoading: medsLoading } = useTodayMedications();
+  const { data: adherenceData } = useMedicationAdherence();
+  const markTaken = useMarkMedicationTaken();
+  const snoozeMed = useSnoozeMedication();
+  const uploadPrescription = useUploadPrescription();
+  
   const [showUpload, setShowUpload] = useState(false);
-  const [uploadPreview, setUploadPreview] = useState(false);
-  const [showExplanation, setShowExplanation] = useState(false);
-  const [showTranslation, setShowTranslation] = useState(false);
-  const [showTeachBack, setShowTeachBack] = useState(false);
+  const [uploadFile, setUploadFile] = useState<File | null>(null);
+  const [extractedData, setExtractedData] = useState<any>(null);
 
-  const takenCount = meds.filter(m => m.taken).length;
-  const adherence = Math.round((takenCount / meds.length) * 100);
+  const takenCount = meds?.schedule?.filter((m: any) => m.takenAt).length || 0;
+  const totalCount = meds?.schedule?.length || 1;
+  const adherence = adherenceData?.week?.adherenceRate || Math.round((takenCount / totalCount) * 100);
 
-  const handleAction = (id: number, action: "taken" | "snoozed" | "missed") => {
-    setMeds(prev => prev.map(m => {
-      if (m.id !== id) return m;
-      return {
-        ...m,
-        taken: action === "taken",
-        snoozed: action === "snoozed",
-        missed: action === "missed",
-      };
-    }));
-    const med = meds.find(m => m.id === id);
-    toast({
-      title: action === "taken" ? "Medication taken" : action === "snoozed" ? "Snoozed" : "Marked missed",
-      description: `${med?.name} ${med?.dose} - ${action}`,
-    });
+  const handleAction = async (id: string, action: "taken" | "snoozed" | "missed") => {
+    if (action === "taken") {
+      await markTaken.mutateAsync({ medicationId: id });
+    } else if (action === "snoozed") {
+      await snoozeMed.mutateAsync({ medicationId: id, snoozeMinutes: 30 });
+    }
+    // For missed, you could add additional API calls if needed
   };
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    
+    setUploadFile(file);
+    try {
+      const result = await uploadPrescription.mutateAsync(file);
+      setExtractedData(result.extracted);
+    } catch (error) {
+      console.error("Upload failed:", error);
+    }
+  };
+
+  if (medsLoading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-5 animate-fade-in">
@@ -69,22 +89,22 @@ export default function Medications() {
               style={{ width: `${adherence}%` }}
             />
           </div>
-          <p className="text-xs text-muted-foreground mt-2"><span className="tabular-nums">{takenCount}</span> of <span className="tabular-nums">{meds.length}</span> medications taken</p>
+          <p className="text-xs text-muted-foreground mt-2"><span className="tabular-nums">{takenCount}</span> of <span className="tabular-nums">{totalCount}</span> medications taken</p>
         </CardContent>
       </Card>
 
       <div>
         <h2 className="text-sm font-semibold mb-3 text-muted-foreground uppercase tracking-wider flex items-center gap-2"><span className="w-1 h-4 rounded-full bg-primary inline-block" />Today's Schedule</h2>
         <div className="space-y-3">
-          {meds.map(med => (
-            <Card key={med.id} className={`card-elevated ${med.taken ? "opacity-75" : ""}`} data-testid={`card-med-${med.id}`}>
+          {meds && meds.schedule && meds.schedule.length > 0 ? meds.schedule.map((med: any) => (
+            <Card key={med.id} className={`card-elevated ${med.takenAt ? "opacity-75" : ""}`} data-testid={`card-med-${med.id}`}>
               <CardContent className="p-4">
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex items-start gap-3 flex-1 min-w-0">
                     <div className={`w-10 h-10 rounded-md flex items-center justify-center flex-shrink-0 ${
-                      med.taken ? "bg-emerald-100 dark:bg-emerald-900/30" : "bg-primary/10 dark:bg-primary/20"
+                      med.takenAt ? "bg-emerald-100 dark:bg-emerald-900/30" : "bg-primary/10 dark:bg-primary/20"
                     }`}>
-                      {med.taken ? (
+                      {med.takenAt ? (
                         <Check className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
                       ) : (
                         <Pill className="w-5 h-5 text-primary" />
@@ -93,54 +113,56 @@ export default function Medications() {
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
                         <h3 className="font-semibold text-sm">{med.name}</h3>
-                        <Badge variant="secondary" className="text-xs no-default-active-elevate">{med.dose}</Badge>
+                        <Badge variant="secondary" className="text-xs no-default-active-elevate">{med.dosage}</Badge>
                       </div>
                       <div className="flex items-center gap-2 mt-1 flex-wrap">
                         <span className="text-xs text-muted-foreground flex items-center gap-1">
-                          <Clock className="w-3 h-3" /> {med.timing}
+                          <Clock className="w-3 h-3" /> {med.scheduledTime || med.frequency}
                         </span>
-                        <span className={`text-xs px-1.5 py-0.5 rounded ${
-                          med.beforeFood
-                            ? "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300"
-                            : "bg-sky-100 text-sky-700 dark:bg-sky-900/30 dark:text-sky-300"
-                        }`}>
-                          {med.beforeFood ? "Before food" : "After food"}
-                        </span>
+                        {med.instructions && (
+                          <span className="text-xs px-1.5 py-0.5 rounded bg-sky-100 text-sky-700 dark:bg-sky-900/30 dark:text-sky-300">
+                            {med.instructions}
+                          </span>
+                        )}
                       </div>
                       <p className="text-xs text-muted-foreground mt-0.5">{med.frequency}</p>
                     </div>
                   </div>
                 </div>
-                {!med.taken && !med.missed && (
+                {!med.takenAt && (
                   <div className="flex items-center gap-2 mt-3 pt-3 border-t border-border animate-scale-in">
-                    <Button size="sm" onClick={() => handleAction(med.id, "taken")} className="flex-1 active:scale-[0.97]" data-testid={`button-taken-${med.id}`}>
-                      <Check className="w-3.5 h-3.5 mr-1" /> Taken
+                    <Button 
+                      size="sm" 
+                      onClick={() => handleAction(med.id, "taken")} 
+                      className="flex-1 active:scale-[0.97]" 
+                      data-testid={`button-taken-${med.id}`}
+                      disabled={markTaken.isPending}
+                    >
+                      {markTaken.isPending ? <Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" /> : <Check className="w-3.5 h-3.5 mr-1" />}
+                      Taken
                     </Button>
                     <Button size="sm" variant="secondary" onClick={() => handleAction(med.id, "snoozed")} className="active:scale-[0.97]" data-testid={`button-snooze-${med.id}`}>
                       <Clock className="w-3.5 h-3.5 mr-1" /> Snooze
                     </Button>
-                    <Button size="sm" variant="secondary" onClick={() => handleAction(med.id, "missed")} className="active:scale-[0.97]" data-testid={`button-missed-${med.id}`}>
-                      <X className="w-3.5 h-3.5 mr-1" /> Missed
-                    </Button>
                   </div>
                 )}
-                {med.taken && (
+                {med.takenAt && (
                   <div className="mt-2 pt-2 border-t border-border">
                     <span className="text-xs text-emerald-600 dark:text-emerald-400 font-medium flex items-center gap-1">
-                      <Check className="w-3 h-3" /> Taken
-                    </span>
-                  </div>
-                )}
-                {med.missed && (
-                  <div className="mt-2 pt-2 border-t border-border">
-                    <span className="text-xs text-red-500 dark:text-red-400 font-medium flex items-center gap-1">
-                      <X className="w-3 h-3" /> Missed
+                      <Check className="w-3 h-3" /> Taken at {new Date(med.takenAt).toLocaleTimeString()}
                     </span>
                   </div>
                 )}
               </CardContent>
             </Card>
-          ))}
+          )) : (
+            <Card className="card-elevated">
+              <CardContent className="p-8 text-center text-muted-foreground">
+                <Pill className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                <p>No medications scheduled for today</p>
+              </CardContent>
+            </Card>
+          )}
         </div>
       </div>
 
@@ -154,60 +176,82 @@ export default function Medications() {
         ) : (
           <Card data-testid="card-upload-prescription">
             <CardContent className="p-4 space-y-4">
-              {!uploadPreview ? (
-                <div
-                  className="border-2 border-dashed border-primary/30 rounded-xl p-8 text-center cursor-pointer transition-colors bg-gradient-to-br from-primary/5 to-primary/10 dark:from-primary/5 dark:to-primary/10"
-                  onClick={() => setUploadPreview(true)}
-                  data-testid="dropzone-prescription"
-                >
-                  <Camera className="w-8 h-8 mx-auto text-primary/60 mb-2" />
-                  <p className="text-sm font-medium">Drop image here or tap to upload</p>
-                  <p className="text-xs text-muted-foreground mt-1">Supports JPG, PNG, PDF</p>
+              {!extractedData ? (
+                <div className="border-2 border-dashed border-primary/30 rounded-xl p-8 text-center transition-colors bg-gradient-to-br from-primary/5 to-primary/10 dark:from-primary/5 dark:to-primary/10">
+                  <input
+                    type="file"
+                    accept="image/*,.pdf"
+                    onChange={handleFileUpload}
+                    className="hidden"
+                    id="prescription-upload"
+                  />
+                  <label htmlFor="prescription-upload" className="cursor-pointer" data-testid="dropzone-prescription">
+                    {uploadPrescription.isPending ? (
+                      <Loader2 className="w-8 h-8 mx-auto text-primary animate-spin mb-2" />
+                    ) : (
+                      <Camera className="w-8 h-8 mx-auto text-primary/60 mb-2" />
+                    )}
+                    <p className="text-sm font-medium">
+                      {uploadPrescription.isPending ? "Analyzing prescription..." : "Drop image here or tap to upload"}
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-1">Supports JPG, PNG, PDF</p>
+                  </label>
                 </div>
               ) : (
                 <div className="space-y-4 animate-slide-up">
                   <div className="bg-muted rounded-md p-4 flex items-center gap-3">
                     <FileText className="w-8 h-8 text-primary" />
                     <div>
-                      <p className="text-sm font-medium">prescription_scan.jpg</p>
-                      <p className="text-xs text-muted-foreground">Uploaded just now</p>
+                      <p className="text-sm font-medium">{uploadFile?.name}</p>
+                      <p className="text-xs text-muted-foreground">Analyzed successfully</p>
                     </div>
                   </div>
 
-                  <Card>
-                    <CardHeader className="pb-2">
-                      <div className="flex items-center gap-2">
-                        <AlertCircle className="w-4 h-4 text-primary" />
-                        <CardTitle className="text-sm">Extracted Medication</CardTitle>
-                      </div>
-                    </CardHeader>
-                    <CardContent className="space-y-3">
-                      <div className="space-y-2">
-                        <div className="flex items-center justify-between gap-1">
+                  {extractedData.medications?.map((med: any, idx: number) => (
+                    <Card key={idx}>
+                      <CardHeader className="pb-2">
+                        <div className="flex items-center gap-2">
+                          <AlertCircle className="w-4 h-4 text-primary" />
+                          <CardTitle className="text-sm">Extracted Medication {idx + 1}</CardTitle>
+                        </div>
+                      </CardHeader>
+                      <CardContent className="space-y-3">
+                        <div className="space-y-2">
                           <Label className="text-xs">Medicine Name</Label>
-                          <Badge variant="secondary" className="text-xs no-default-active-elevate">95% confidence</Badge>
+                          <Input defaultValue={med.name} className="text-sm" />
                         </div>
-                        <Input defaultValue="Losartan" className="text-sm" data-testid="input-extracted-name" />
-                      </div>
-                      <div className="grid grid-cols-2 gap-3">
-                        <div className="space-y-1">
-                          <Label className="text-xs">Dose</Label>
-                          <Input defaultValue="50mg" className="text-sm" data-testid="input-extracted-dose" />
+                        <div className="grid grid-cols-2 gap-3">
+                          <div className="space-y-1">
+                            <Label className="text-xs">Dose</Label>
+                            <Input defaultValue={med.dosage} className="text-sm" />
+                          </div>
+                          <div className="space-y-1">
+                            <Label className="text-xs">Frequency</Label>
+                            <Input defaultValue={med.frequency} className="text-sm" />
+                          </div>
                         </div>
-                        <div className="space-y-1">
-                          <Label className="text-xs">Frequency</Label>
-                          <Input defaultValue="Once daily" className="text-sm" data-testid="input-extracted-freq" />
-                        </div>
-                      </div>
-                      <div className="space-y-1">
-                        <Label className="text-xs">Timing</Label>
-                        <Input defaultValue="Morning, after food" className="text-sm" data-testid="input-extracted-timing" />
-                      </div>
-                      <Button className="w-full" data-testid="button-confirm-add">
-                        <Check className="w-4 h-4 mr-1" /> Confirm & Add to Schedule
-                      </Button>
-                    </CardContent>
-                  </Card>
+                        {med.instructions && (
+                          <div className="space-y-1">
+                            <Label className="text-xs">Instructions</Label>
+                            <Input defaultValue={med.instructions} className="text-sm" />
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
+                  ))}
+                  <Button 
+                    className="w-full" 
+                    onClick={() => {
+                      setShowUpload(false);
+                      setExtractedData(null);
+                      setUploadFile(null);
+                      // Refresh medications list
+                      queryClient.invalidateQueries({ queryKey: ["medications"] });
+                      queryClient.invalidateQueries({ queryKey: ["medications", "today"] });
+                    }}
+                  >
+                    <Check className="w-4 h-4 mr-1" /> Done
+                  </Button>
                 </div>
               )}
             </CardContent>
@@ -222,44 +266,9 @@ export default function Medications() {
           </div>
         </CardHeader>
         <CardContent className="space-y-3">
-          {!showExplanation ? (
-            <Button variant="secondary" className="w-full" onClick={() => setShowExplanation(true)} data-testid="button-explain-med">
-              <HelpCircle className="w-4 h-4 mr-2" /> Explain {prescriptionExplanation.medName} simply
-            </Button>
-          ) : (
-            <div className="space-y-3 animate-slide-up">
-              <div className="rounded-md bg-primary/5 dark:bg-primary/10 p-3">
-                <p className="text-xs font-medium text-primary mb-1">Plain Language Explanation</p>
-                <p className="text-sm leading-relaxed" data-testid="text-med-explanation">
-                  {prescriptionExplanation.simplePlain}
-                </p>
-              </div>
-
-              {!showTranslation ? (
-                <Button size="sm" variant="secondary" onClick={() => setShowTranslation(true)} data-testid="button-say-in-language">
-                  <Languages className="w-3.5 h-3.5 mr-1" /> Say in my language
-                </Button>
-              ) : (
-                <div className="rounded-md bg-amber-50 dark:bg-amber-950/20 p-3 animate-slide-up" data-testid="card-translation">
-                  <p className="text-xs font-medium text-amber-700 dark:text-amber-300 mb-1">Hindi Translation</p>
-                  <p className="text-sm leading-relaxed">{prescriptionExplanation.hindiPlain}</p>
-                </div>
-              )}
-
-              {!showTeachBack ? (
-                <Button size="sm" variant="secondary" onClick={() => setShowTeachBack(true)} data-testid="button-teach-back">
-                  <MessageSquare className="w-3.5 h-3.5 mr-1" /> Teach-back check
-                </Button>
-              ) : (
-                <div className="rounded-md bg-sky-50 dark:bg-sky-950/20 border border-sky-200 dark:border-sky-800 p-3 animate-slide-up" data-testid="card-teach-back">
-                  <p className="text-xs font-medium text-sky-700 dark:text-sky-300 mb-1">Teach-Back</p>
-                  <p className="text-sm leading-relaxed text-sky-800 dark:text-sky-200">
-                    {prescriptionExplanation.teachBack}
-                  </p>
-                </div>
-              )}
-            </div>
-          )}
+          <p className="text-sm text-muted-foreground">
+            Ask your AI health copilot about any medication in the Voice/Chat tab for simple explanations in your language.
+          </p>
         </CardContent>
       </Card>
     </div>

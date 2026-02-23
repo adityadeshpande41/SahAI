@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,16 +16,47 @@ import {
   Clock,
   Pill,
   Activity,
+  Loader2,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useCaregivers, useCreateCaregiver, useSendCaregiverUpdate } from "@/hooks/use-api";
 
 export default function Caregiver() {
   const { toast } = useToast();
-  const [caregiverName, setCaregiverName] = useState("Priya Sharma");
-  const [caregiverPhone, setCaregiverPhone] = useState("+91 98765 43210");
-  const [caregiverRelation, setCaregiverRelation] = useState("Daughter");
+  const { data: caregivers, isLoading } = useCaregivers();
+  const createCaregiver = useCreateCaregiver();
+  const sendUpdate = useSendCaregiverUpdate();
+  
+  const [caregiverName, setCaregiverName] = useState("");
+  const [caregiverPhone, setCaregiverPhone] = useState("");
+  const [caregiverRelation, setCaregiverRelation] = useState("");
   const [privacyLevel, setPrivacyLevel] = useState("daily");
   const [showAlert, setShowAlert] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+
+  // Load existing caregiver data
+  const existingCaregiver = caregivers?.[0];
+  
+  const handleSave = async () => {
+    if (!caregiverName || !caregiverPhone) {
+      toast({
+        title: "Missing information",
+        description: "Please fill in name and phone number",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    await createCaregiver.mutateAsync({
+      name: caregiverName,
+      phone: caregiverPhone,
+      relationship: caregiverRelation,
+      notificationPreferences: {
+        level: privacyLevel,
+      },
+    });
+    setIsEditing(false);
+  };
 
   const privacyOptions = [
     { value: "emergency", label: "Emergency only", desc: "Only notify during high-risk situations" },
@@ -38,6 +69,24 @@ export default function Caregiver() {
     setShowAlert(true);
     toast({ title: "Alert simulated", description: "High-risk alert notification previewed" });
   };
+
+  // Load existing caregiver data when available
+  useEffect(() => {
+    if (existingCaregiver && !isEditing) {
+      setCaregiverName(existingCaregiver.name || "");
+      setCaregiverPhone(existingCaregiver.phone || "");
+      setCaregiverRelation(existingCaregiver.relationship || "");
+      setPrivacyLevel(existingCaregiver.notificationPreferences?.level || "daily");
+    }
+  }, [existingCaregiver, isEditing]);
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-5 animate-fade-in">
@@ -55,18 +104,51 @@ export default function Caregiver() {
         <CardContent className="space-y-3">
           <div className="space-y-1.5">
             <Label className="text-xs">Name</Label>
-            <Input value={caregiverName} onChange={e => setCaregiverName(e.target.value)} className="text-sm" data-testid="input-cg-name" />
+            <Input 
+              value={caregiverName} 
+              onChange={e => {
+                setCaregiverName(e.target.value);
+                setIsEditing(true);
+              }} 
+              className="text-sm" 
+              data-testid="input-cg-name" 
+              placeholder="Enter caregiver name"
+            />
           </div>
           <div className="space-y-1.5">
             <Label className="text-xs">Phone</Label>
-            <Input value={caregiverPhone} onChange={e => setCaregiverPhone(e.target.value)} className="text-sm" data-testid="input-cg-phone" />
+            <Input 
+              value={caregiverPhone} 
+              onChange={e => {
+                setCaregiverPhone(e.target.value);
+                setIsEditing(true);
+              }} 
+              className="text-sm" 
+              data-testid="input-cg-phone" 
+              placeholder="+91 XXXXX XXXXX"
+            />
           </div>
           <div className="space-y-1.5">
             <Label className="text-xs">Relation</Label>
-            <Input value={caregiverRelation} onChange={e => setCaregiverRelation(e.target.value)} className="text-sm" data-testid="input-cg-relation" />
+            <Input 
+              value={caregiverRelation} 
+              onChange={e => {
+                setCaregiverRelation(e.target.value);
+                setIsEditing(true);
+              }} 
+              className="text-sm" 
+              data-testid="input-cg-relation" 
+              placeholder="e.g., Daughter, Son, Spouse"
+            />
           </div>
-          <Button size="sm" data-testid="button-save-caregiver" onClick={() => toast({ title: "Caregiver saved" })}>
-            <Check className="w-3.5 h-3.5 mr-1" /> Save
+          <Button 
+            size="sm" 
+            data-testid="button-save-caregiver" 
+            onClick={handleSave}
+            disabled={createCaregiver.isPending}
+          >
+            {createCaregiver.isPending ? <Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" /> : <Check className="w-3.5 h-3.5 mr-1" />}
+            Save
           </Button>
         </CardContent>
       </Card>
@@ -126,6 +208,42 @@ export default function Caregiver() {
         </CardContent>
       </Card>
 
+      <Card className="card-elevated" data-testid="card-send-update">
+        <CardHeader className="pb-2">
+          <CardTitle className="text-sm font-semibold flex items-center gap-2">
+            <Heart className="w-4 h-4" /> Send Progress Update
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <p className="text-xs text-muted-foreground">
+            Share your health progress with your caregiver. They'll receive a summary of your medications, meals, and activities.
+          </p>
+          <Button 
+            onClick={() => sendUpdate.mutateAsync({})} 
+            disabled={sendUpdate.isPending || !existingCaregiver}
+            data-testid="button-send-update"
+            className="w-full"
+          >
+            {sendUpdate.isPending ? (
+              <>
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                Sending...
+              </>
+            ) : (
+              <>
+                <Heart className="w-4 h-4 mr-2" />
+                Send Update to {caregiverName || "Caregiver"}
+              </>
+            )}
+          </Button>
+          {!existingCaregiver && (
+            <p className="text-xs text-amber-600 dark:text-amber-400">
+              Please add a caregiver contact first to send updates.
+            </p>
+          )}
+        </CardContent>
+      </Card>
+
       <Card className="card-elevated" data-testid="card-alert-simulation">
         <CardHeader className="pb-2">
           <CardTitle className="text-sm font-semibold flex items-center gap-2">
@@ -144,11 +262,11 @@ export default function Caregiver() {
                 <span className="font-semibold text-sm text-red-800 dark:text-red-300">High-Risk Alert</span>
               </div>
               <p className="text-sm text-red-700 dark:text-red-300">
-                Aditya reported severe dizziness (5/5) and has missed 2 medications today. Lunch has been delayed by 3 hours.
+                User reported severe dizziness (5/5) and has missed 2 medications today. Lunch has been delayed by 3 hours.
               </p>
               <div className="flex items-center gap-2 text-xs text-red-600 dark:text-red-400">
                 <Phone className="w-3.5 h-3.5" />
-                <span>Notification sent to {caregiverName} at {caregiverPhone}</span>
+                <span>Notification sent to {caregiverName || "caregiver"} at {caregiverPhone || "phone"}</span>
               </div>
               <div className="flex items-center gap-2 pt-1">
                 <Button size="sm" variant="secondary" onClick={() => setShowAlert(false)}>Dismiss</Button>

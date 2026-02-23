@@ -9,6 +9,7 @@ import {
   BarChart3,
   Heart,
   Settings,
+  Dumbbell,
 } from "lucide-react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { useState } from "react";
@@ -21,6 +22,7 @@ const mainItems = [
 ];
 
 const moreItems = [
+  { title: "Exercise", url: "/exercise", icon: Dumbbell },
   { title: "Symptoms", url: "/symptoms", icon: Activity },
   { title: "Insights", url: "/insights", icon: BarChart3 },
   { title: "Caregiver", url: "/caregiver", icon: Heart },

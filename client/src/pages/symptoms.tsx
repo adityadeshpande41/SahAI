@@ -15,15 +15,12 @@ import {
   Clock,
   TrendingUp,
   AlertTriangle,
+  Loader2,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import {
-  symptomQuickOptions,
-  recentSymptoms,
-  recentActivities,
-  type SymptomEntry,
-  type ActivityEntry,
-} from "@/lib/mock-data";
+import { useRecentSymptoms, useCreateSymptom, useRecentActivities, useCreateActivity } from "@/hooks/use-api";
+
+const symptomQuickOptions = ["Dizziness", "Fatigue", "Headache", "Nausea", "Pain", "Shortness of breath"];
 
 const activityIcons: Record<string, typeof Footprints> = {
   Walking: Footprints,
@@ -34,40 +31,35 @@ const activityIcons: Record<string, typeof Footprints> = {
 
 export default function Symptoms() {
   const { toast } = useToast();
+  const { data: symptoms, isLoading: symptomsLoading } = useRecentSymptoms(7);
+  const { data: activities, isLoading: activitiesLoading } = useRecentActivities(10);
+  const createSymptom = useCreateSymptom();
+  const createActivity = useCreateActivity();
+  
   const [selectedSymptom, setSelectedSymptom] = useState<string | null>(null);
   const [severity, setSeverity] = useState([3]);
   const [notes, setNotes] = useState("");
-  const [symptoms, setSymptoms] = useState<SymptomEntry[]>(recentSymptoms);
-  const [activities, setActivities] = useState<ActivityEntry[]>(recentActivities);
   const [currentActivity, setCurrentActivity] = useState("Resting");
 
-  const logSymptom = () => {
+  const logSymptom = async () => {
     if (!selectedSymptom) return;
-    const entry: SymptomEntry = {
-      id: Date.now(),
+    await createSymptom.mutateAsync({
       symptom: selectedSymptom,
       severity: severity[0],
-      time: new Date().toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true }),
-      date: "Today",
+      loggedAt: new Date(),
       notes: notes || undefined,
-    };
-    setSymptoms(prev => [entry, ...prev]);
+    });
     setSelectedSymptom(null);
     setSeverity([3]);
     setNotes("");
-    toast({ title: "Symptom logged", description: `${selectedSymptom} (severity ${severity[0]}/5)` });
   };
 
-  const logActivity = (activity: string) => {
+  const logActivity = async (activity: string) => {
     setCurrentActivity(activity);
-    const entry: ActivityEntry = {
-      id: Date.now(),
-      activity,
-      time: new Date().toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true }),
-      date: "Today",
-    };
-    setActivities(prev => [entry, ...prev]);
-    toast({ title: "Activity updated", description: activity });
+    await createActivity.mutateAsync({
+      activity: activity,
+      loggedAt: new Date(),
+    });
   };
 
   const severityLabels = ["", "Very mild", "Mild", "Moderate", "Strong", "Severe"];
@@ -129,8 +121,9 @@ export default function Symptoms() {
                     data-testid="textarea-symptom-notes"
                   />
                 </div>
-                <Button onClick={logSymptom} data-testid="button-log-symptom">
-                  <Check className="w-4 h-4 mr-1" /> Log Symptom
+                <Button onClick={logSymptom} disabled={createSymptom.isPending} data-testid="button-log-symptom">
+                  {createSymptom.isPending ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Check className="w-4 h-4 mr-1" />}
+                  Log Symptom
                 </Button>
               </div>
             )}
@@ -189,40 +182,58 @@ export default function Symptoms() {
 
       <div>
         <h2 className="text-sm font-semibold mb-3 text-muted-foreground uppercase tracking-wider flex items-center gap-2"><span className="w-1 h-4 rounded-full bg-primary inline-block" />Recent Symptoms</h2>
-        <div className="space-y-2">
-          {symptoms.slice(0, 5).map(s => (
-            <div key={s.id} className="flex items-center gap-3 py-2 px-3 rounded-md bg-card" data-testid={`item-symptom-${s.id}`}>
-              <AlertTriangle className={`w-4 h-4 flex-shrink-0 ${
-                s.severity <= 2 ? "text-amber-500" : s.severity <= 3 ? "text-orange-500" : "text-red-500"
-              }`} />
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <span className="text-sm font-medium">{s.symptom}</span>
-                  <span className={`text-xs ${severityColors[s.severity]}`}>{s.severity}/5</span>
+        {symptomsLoading ? (
+          <div className="flex justify-center py-8">
+            <Loader2 className="w-6 h-6 animate-spin text-primary" />
+          </div>
+        ) : symptoms && symptoms.symptoms && symptoms.symptoms.length > 0 ? (
+          <div className="space-y-2">
+            {symptoms.symptoms.slice(0, 5).map((s: any) => (
+              <div key={s.id} className="flex items-center gap-3 py-2 px-3 rounded-md bg-card" data-testid={`item-symptom-${s.id}`}>
+                <AlertTriangle className={`w-4 h-4 flex-shrink-0 ${
+                  s.severity <= 2 ? "text-amber-500" : s.severity <= 3 ? "text-orange-500" : "text-red-500"
+                }`} />
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-sm font-medium">{s.symptom}</span>
+                    <span className={`text-xs ${severityColors[s.severity]}`}>{s.severity}/5</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground">{new Date(s.loggedAt).toLocaleString()}</p>
+                  {s.notes && <p className="text-xs text-muted-foreground mt-1">{s.notes}</p>}
                 </div>
-                <p className="text-xs text-muted-foreground">{s.date} at {s.time}</p>
               </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        ) : (
+          <p className="text-sm text-muted-foreground text-center py-4">No symptoms logged yet</p>
+        )}
       </div>
 
       <div>
         <h2 className="text-sm font-semibold mb-3 text-muted-foreground uppercase tracking-wider flex items-center gap-2"><span className="w-1 h-4 rounded-full bg-primary inline-block" />Recent Activity</h2>
-        <div className="space-y-2">
-          {activities.slice(0, 5).map(a => {
-            const Icon = activityIcons[a.activity] || Activity;
-            return (
-              <div key={a.id} className="flex items-center gap-3 py-2 px-3 rounded-md bg-card" data-testid={`item-activity-${a.id}`}>
-                <Icon className="w-4 h-4 text-muted-foreground flex-shrink-0" />
-                <div className="flex-1 min-w-0">
-                  <span className="text-sm font-medium">{a.activity}</span>
-                  <p className="text-xs text-muted-foreground">{a.date} at {a.time}</p>
+        {activitiesLoading ? (
+          <div className="flex justify-center py-8">
+            <Loader2 className="w-6 h-6 animate-spin text-primary" />
+          </div>
+        ) : activities && activities.activities && activities.activities.length > 0 ? (
+          <div className="space-y-2">
+            {activities.activities.slice(0, 5).map((a: any) => {
+              const Icon = activityIcons[a.activityType] || Activity;
+              return (
+                <div key={a.id} className="flex items-center gap-3 py-2 px-3 rounded-md bg-card" data-testid={`item-activity-${a.id}`}>
+                  <Icon className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <span className="text-sm font-medium">{a.activityType}</span>
+                    <p className="text-xs text-muted-foreground">{new Date(a.loggedAt).toLocaleString()}</p>
+                    {a.notes && <p className="text-xs text-muted-foreground mt-1">{a.notes}</p>}
+                  </div>
                 </div>
-              </div>
-            );
-          })}
-        </div>
+              );
+            })}
+          </div>
+        ) : (
+          <p className="text-sm text-muted-foreground text-center py-4">No activities logged yet</p>
+        )}
       </div>
     </div>
   );

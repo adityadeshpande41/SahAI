@@ -6,6 +6,13 @@ import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
+import {
   Mic,
   Send,
   RefreshCw,
@@ -14,8 +21,17 @@ import {
   Heart,
   Sparkles,
   AlertCircle,
+  Loader2,
+  Square,
+  Volume2,
+  VolumeX,
+  Trash2,
 } from "lucide-react";
-import { demoConversations, type ChatMessage } from "@/lib/mock-data";
+import { useConversationHistory, useSendMessage, useCurrentUser, useClearConversationHistory } from "@/hooks/use-api";
+import { useVoiceRecording } from "@/hooks/use-voice-recording";
+import { speechToText, textToSpeech } from "@/lib/api-client";
+import { useToast } from "@/hooks/use-toast";
+import type { ChatMessage } from "@/lib/mock-data";
 
 const quickPrompts = [
   "I took my meds",
@@ -24,6 +40,17 @@ const quickPrompts = [
   "What's unusual today?",
   "I took it",
   "I'm out",
+];
+
+const languages = [
+  { code: "en", name: "English", flag: "🇬🇧" },
+  { code: "hi", name: "Hindi", flag: "🇮🇳" },
+  { code: "es", name: "Spanish", flag: "🇪🇸" },
+  { code: "fr", name: "French", flag: "🇫🇷" },
+  { code: "de", name: "German", flag: "🇩🇪" },
+  { code: "zh", name: "Chinese", flag: "🇨🇳" },
+  { code: "ja", name: "Japanese", flag: "🇯🇵" },
+  { code: "ar", name: "Arabic", flag: "🇸🇦" },
 ];
 
 const eventParsing: Record<string, { type: string; confidence: number; parsed: string }> = {
@@ -45,79 +72,225 @@ const ambiguityResponses: Record<string, ChatMessage[]> = {
 };
 
 export default function Voice() {
-  const [messages, setMessages] = useState<ChatMessage[]>([
-    { id: 0, sender: "sahai", text: "Hi! I'm SahAI, your health copilot. How can I help you today? You can tell me about your meals, medications, or how you're feeling.", time: new Date().toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true }) },
-  ]);
   const [inputText, setInputText] = useState("");
   const [simpleMode, setSimpleMode] = useState(false);
-  const [isTyping, setIsTyping] = useState(false);
-  const [lastParsedEvent, setLastParsedEvent] = useState<{ type: string; confidence: number; parsed: string } | null>(null);
-  const [lastUserText, setLastUserText] = useState("");
+  const [autoSpeak, setAutoSpeak] = useState(true);
+  const [pushToTalk, setPushToTalk] = useState(false);
+  const [isSpeaking, setIsSpeaking] = useState(false);
+  const [showLanguageDialog, setShowLanguageDialog] = useState(false);
+  const [hasGreeted, setHasGreeted] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const { toast } = useToast();
+
+  // Fetch conversation history and user data
+  const { data: historyData, isLoading } = useConversationHistory(50);
+  const { data: userData } = useCurrentUser();
+  const sendMessageMutation = useSendMessage();
+  const clearChatMutation = useClearConversationHistory();
+  
+  // Get user's preferred language
+  const user = userData?.user || userData;
+  const userLanguage = user?.language || "English";
+  
+  // Voice recording
+  const { isRecording, audioBlob, startRecording, stopRecording, clearRecording } = useVoiceRecording();
+
+  // Convert API history to chat messages
+  const messages: ChatMessage[] = historyData?.history?.map((msg: any, idx: number) => ({
+    id: idx,
+    sender: msg.sender,
+    text: msg.message,
+    time: new Date(msg.createdAt).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true }),
+  })) || [];
+
+  // Add welcome message if no history
+  if (messages.length === 0 && !isLoading) {
+    messages.push({
+      id: 0,
+      sender: "sahai",
+      text: "Hi! I'm SahAI, your health copilot. How can I help you today? You can tell me about your meals, medications, or how you're feeling.",
+      time: new Date().toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true }),
+    });
+  }
 
   useEffect(() => {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
-  }, [messages, isTyping]);
+  }, [messages, sendMessageMutation.isPending]);
 
-  const sendMessage = (text: string) => {
+  // Auto-greeting when page loads
+  useEffect(() => {
+    if (!hasGreeted && !isLoading && user && autoSpeak) {
+      setHasGreeted(true);
+      
+      // Wait a moment for the page to settle
+      const timer = setTimeout(() => {
+        const greetings: Record<string, string> = {
+          "English": "Hello! I'm SahAI, your health companion. How can I help you today?",
+          "Hindi": "नमस्ते! मैं सहाई हूं, आपका स्वास्थ्य साथी। आज मैं आपकी कैसे मदद कर सकता हूं?",
+          "Marathi": "नमस्कार! मी सहाई आहे, तुमचा आरोग्य साथी। आज मी तुम्हाला कशी मदत करू शकतो?",
+          "Tamil": "வணக்கம்! நான் சஹாஐ, உங்கள் ஆரோக்கிய துணை. இன்று நான் உங்களுக்கு எப்படி உதவ முடியும்?",
+          "Telugu": "నమస్కారం! నేను సహాఐ, మీ ఆరోగ్య సహచరుడు. ఈరోజు నేను మీకు ఎలా సహాయం చేయగలను?",
+          "Bengali": "নমস্কার! আমি সহাঐ, আপনার স্বাস্থ্য সঙ্গী। আজ আমি আপনাকে কীভাবে সাহায্য করতে পারি?",
+          "Gujarati": "નમસ્તે! હું સહાઐ છું, તમારો આરોગ્ય સાથી. આજે હું તમને કેવી રીતે મદદ કરી શકું?",
+          "Kannada": "ನಮಸ್ಕಾರ! ನಾನು ಸಹಾಐ, ನಿಮ್ಮ ಆರೋಗ್ಯ ಸಹಚರ. ಇಂದು ನಾನು ನಿಮಗೆ ಹೇಗೆ ಸಹಾಯ ಮಾಡಬಹುದು?",
+          "Spanish": "¡Hola! Soy SahAI, tu compañero de salud. ¿Cómo puedo ayudarte hoy?",
+          "French": "Bonjour! Je suis SahAI, votre compagnon de santé. Comment puis-je vous aider aujourd'hui?",
+          "German": "Hallo! Ich bin SahAI, Ihr Gesundheitsbegleiter. Wie kann ich Ihnen heute helfen?",
+          "Chinese": "你好！我是SahAI，您的健康伙伴。今天我能为您做些什么？",
+          "Japanese": "こんにちは！私はSahAI、あなたの健康パートナーです。今日はどのようにお手伝いできますか？",
+          "Arabic": "مرحبا! أنا SahAI، رفيقك الصحي. كيف يمكنني مساعدتك اليوم؟",
+        };
+        
+        const greeting = greetings[userLanguage] || greetings["English"];
+        speakText(greeting);
+      }, 1000);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [hasGreeted, isLoading, user, autoSpeak, userLanguage]);
+
+  const sendMessage = async (text: string) => {
     if (!text.trim()) return;
 
-    const now = () => new Date().toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true });
-    const userMsg: ChatMessage = {
+    const userMessage = text.trim();
+    setInputText("");
+    
+    // Optimistic update - add user message immediately
+    const tempUserMsg: ChatMessage = {
       id: Date.now(),
       sender: "user",
-      text: text.trim(),
-      time: now(),
+      text: userMessage,
+      time: new Date().toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true }),
     };
-    setMessages(prev => [...prev, userMsg]);
-    setInputText("");
-    setIsTyping(true);
-    setLastUserText(text.trim());
-
-    const parsedEvent = Object.entries(eventParsing).find(
-      ([k]) => text.trim().toLowerCase() === k.toLowerCase()
-    );
-    if (parsedEvent) setLastParsedEvent(parsedEvent[1]);
-    else setLastParsedEvent(null);
-
-    const ambiguityKey = Object.keys(ambiguityResponses).find(
-      k => text.trim().toLowerCase() === k.toLowerCase()
-    );
-
-    const demoKey = Object.keys(demoConversations).find(
-      k => text.trim().toLowerCase().includes(k.toLowerCase())
-    );
-
-    setTimeout(() => {
-      setIsTyping(false);
-      if (ambiguityKey) {
-        const resp = ambiguityResponses[ambiguityKey][0];
-        setMessages(prev => [...prev, { ...resp, id: Date.now() + 1, time: now() }]);
-      } else if (demoKey) {
-        const convo = demoConversations[demoKey];
-        const responses = convo.filter(m => m.sender === "sahai");
-        if (responses.length > 0) {
-          setMessages(prev => [...prev, { ...responses[0], id: Date.now() + 1, time: now() }]);
-          if (responses.length > 1) {
-            setTimeout(() => {
-              setMessages(prev => [...prev, { ...responses[responses.length - 1], id: Date.now() + 2, time: now() }]);
-            }, 2000);
-          }
-        }
-      } else {
-        setMessages(prev => [...prev, {
-          id: Date.now() + 1,
-          sender: "sahai",
-          text: simpleMode
-            ? "I heard you. Let me help. Can you tell me more about what you need?"
-            : "I understand. Could you tell me a bit more so I can help you better? For example, you can say 'I took my meds', 'I ate', or 'I feel unwell'.",
-          time: now(),
-        }]);
+    
+    try {
+      const response = await sendMessageMutation.mutateAsync(userMessage);
+      
+      // Auto-speak the response in parallel (don't wait)
+      if (autoSpeak && response?.reply) {
+        speakText(response.reply).catch(err => {
+          console.error("TTS error:", err);
+          // Silently fail - don't block the UI
+        });
       }
-    }, 1200);
+    } catch (error) {
+      // Error handled by mutation
+    }
   };
+
+  const speakText = async (text: string) => {
+    try {
+      setIsSpeaking(true);
+      
+      // Stop any currently playing audio
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current = null;
+      }
+      
+      // Pass user's language preference to TTS
+      const audioBlob = await textToSpeech(text, undefined, { language: userLanguage });
+      const audioUrl = URL.createObjectURL(audioBlob);
+      const audio = new Audio(audioUrl);
+      audioRef.current = audio;
+      
+      audio.onended = () => {
+        setIsSpeaking(false);
+        URL.revokeObjectURL(audioUrl);
+        audioRef.current = null;
+      };
+      
+      audio.onerror = () => {
+        setIsSpeaking(false);
+        URL.revokeObjectURL(audioUrl);
+        audioRef.current = null;
+      };
+      
+      await audio.play();
+    } catch (error: any) {
+      console.error("TTS error:", error);
+      setIsSpeaking(false);
+      // Don't show error toast for TTS failures - it's not critical
+    }
+  };
+
+  const stopSpeaking = () => {
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current = null;
+      setIsSpeaking(false);
+    }
+  };
+
+  const handleMicClick = async () => {
+    if (isRecording) {
+      stopRecording();
+    } else {
+      try {
+        await startRecording();
+        toast({
+          title: "Recording started",
+          description: "Speak now. Click again to stop.",
+        });
+      } catch (error: any) {
+        toast({
+          title: "Microphone access denied",
+          description: error.message || "Please allow microphone access to use voice input.",
+          variant: "destructive",
+        });
+      }
+    }
+  };
+
+  // Process audio when recording stops
+  useEffect(() => {
+    if (audioBlob && !isRecording) {
+      const processAudio = async () => {
+        try {
+          // Show processing state immediately
+          const processingToast = toast({
+            title: "Processing...",
+            description: "Converting speech to text",
+            duration: 30000, // Long duration
+          });
+          
+          const result = await speechToText(audioBlob);
+          
+          // Dismiss processing toast
+          processingToast.dismiss?.();
+          
+          if (result.transcript) {
+            // Auto-send if transcript is clear
+            if (result.transcript.length > 5) {
+              sendMessage(result.transcript);
+              toast({
+                title: "Message sent",
+                description: `"${result.transcript.substring(0, 50)}${result.transcript.length > 50 ? '...' : ''}"`,
+                duration: 2000,
+              });
+            } else {
+              // Put in input for editing if too short
+              setInputText(result.transcript);
+            }
+          }
+          
+          clearRecording();
+        } catch (error: any) {
+          toast({
+            title: "Speech recognition failed",
+            description: error.message || "Please try speaking more clearly.",
+            variant: "destructive",
+          });
+          clearRecording();
+        }
+      };
+      
+      processAudio();
+    }
+  }, [audioBlob, isRecording]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" && !e.shiftKey) {
@@ -126,6 +299,14 @@ export default function Voice() {
     }
   };
 
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col h-[calc(100vh-8rem)] md:h-[calc(100vh-6rem)] animate-fade-in">
       <div className="flex items-center justify-between gap-1 mb-4">
@@ -133,9 +314,15 @@ export default function Voice() {
           <h1 className="text-2xl font-bold tracking-tight text-gradient" data-testid="text-voice-title">Talk to SahAI</h1>
           <p className="text-sm text-muted-foreground mt-0.5">Your health conversation assistant</p>
         </div>
-        <div className="flex items-center gap-2">
-          <span className="text-xs text-muted-foreground">Simple</span>
-          <Switch checked={simpleMode} onCheckedChange={setSimpleMode} data-testid="switch-simple-mode" />
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
+            <Volume2 className="w-3.5 h-3.5 text-muted-foreground" />
+            <Switch checked={autoSpeak} onCheckedChange={setAutoSpeak} data-testid="switch-auto-speak" />
+          </div>
+          <div className="flex items-center gap-2">
+            <Mic className="w-3.5 h-3.5 text-muted-foreground" />
+            <Switch checked={pushToTalk} onCheckedChange={setPushToTalk} data-testid="switch-push-to-talk" />
+          </div>
         </div>
       </div>
 
@@ -187,7 +374,7 @@ export default function Voice() {
                 </div>
               </div>
             ))}
-            {isTyping && (
+            {sendMessageMutation.isPending && (
               <div className="flex justify-start">
                 <div className="max-w-[85%]">
                   <div className="flex items-center gap-1.5 mb-1">
@@ -208,28 +395,35 @@ export default function Voice() {
             )}
           </div>
         </ScrollArea>
-        {lastParsedEvent && (
-          <div className="px-4 py-2 border-t border-border bg-gradient-to-r from-primary/5 to-transparent dark:from-primary/10 dark:to-transparent animate-slide-in-right" data-testid="card-parsed-event">
-            <div className="flex items-center gap-2 text-xs">
-              <Sparkles className="w-3 h-3 text-primary flex-shrink-0" />
-              <span className="text-muted-foreground">Parsed:</span>
-              <Badge variant="secondary" className="text-xs no-default-active-elevate">{lastParsedEvent.type}</Badge>
-              <span className="text-muted-foreground">—</span>
-              <span className={`tabular-nums ${lastParsedEvent.confidence < 0.7 ? "text-amber-600 dark:text-amber-400" : "text-emerald-600 dark:text-emerald-400"}`}>
-                {Math.round(lastParsedEvent.confidence * 100)}% conf
-              </span>
-              {lastParsedEvent.confidence < 0.7 && (
-                <span className="flex items-center gap-0.5 text-amber-600 dark:text-amber-400">
-                  <AlertCircle className="w-3 h-3" /> Ambiguous
-                </span>
-              )}
-            </div>
-          </div>
-        )}
         <div className="p-3 border-t border-border glass-subtle">
+          {isSpeaking && (
+            <div className="mb-2 flex items-center justify-between p-2 rounded-lg bg-primary/10 border border-primary/20">
+              <div className="flex items-center gap-2">
+                <Volume2 className="w-4 h-4 text-primary animate-pulse" />
+                <span className="text-sm font-medium text-primary">Playing audio...</span>
+              </div>
+              <Button 
+                size="sm" 
+                variant="destructive" 
+                onClick={stopSpeaking} 
+                aria-label="Stop audio"
+                className="h-8"
+              >
+                <Square className="w-3.5 h-3.5 mr-1.5" />
+                Stop
+              </Button>
+            </div>
+          )}
           <div className="flex items-center gap-2">
-            <Button size="icon" variant="secondary" aria-label="Voice input" data-testid="button-mic">
-              <Mic className="w-4 h-4" />
+            <Button 
+              size="icon" 
+              variant={isRecording ? "destructive" : "secondary"}
+              aria-label="Voice input" 
+              data-testid="button-mic"
+              onClick={handleMicClick}
+              className={isRecording ? "animate-pulse" : ""}
+            >
+              {isRecording ? <Square className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
             </Button>
             <Input
               placeholder="Type a message..."
@@ -239,8 +433,8 @@ export default function Voice() {
               className="flex-1 text-sm"
               data-testid="input-chat"
             />
-            <Button size="icon" onClick={() => sendMessage(inputText)} disabled={!inputText.trim()} aria-label="Send message" className="active:scale-[0.97]" data-testid="button-send">
-              <Send className="w-4 h-4" />
+            <Button size="icon" onClick={() => sendMessage(inputText)} disabled={!inputText.trim() || sendMessageMutation.isPending} aria-label="Send message" className="active:scale-[0.97]" data-testid="button-send">
+              {sendMessageMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
             </Button>
           </div>
           <div className="flex items-center gap-2 mt-2">
@@ -252,12 +446,7 @@ export default function Voice() {
               onClick={() => {
                 const lastSahai = [...messages].reverse().find(m => m.sender === "sahai");
                 if (lastSahai) {
-                  setMessages(prev => [...prev, {
-                    id: Date.now(),
-                    sender: "sahai",
-                    text: `(Repeating) ${lastSahai.text}`,
-                    time: new Date().toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true }),
-                  }]);
+                  sendMessage(`Repeat: ${lastSahai.text}`);
                 }
               }}
             >
@@ -268,20 +457,73 @@ export default function Voice() {
               variant="ghost"
               className="text-xs text-muted-foreground"
               data-testid="button-language"
-              onClick={() => {
-                setMessages(prev => [...prev, {
-                  id: Date.now(),
-                  sender: "sahai",
-                  text: "मैंने आपकी बात समझ ली। क्या आप मुझे और बता सकते हैं? आप कह सकते हैं 'मैंने दवाई ली', 'मैंने खाना खाया', या 'मुझे अच्छा नहीं लग रहा'।",
-                  time: new Date().toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true }),
-                }]);
-              }}
+              onClick={() => setShowLanguageDialog(true)}
             >
               <Languages className="w-3 h-3 mr-1" /> Say in my language
+            </Button>
+            <Button
+              size="sm"
+              variant="ghost"
+              className="text-xs text-destructive"
+              data-testid="button-clear-chat"
+              onClick={() => {
+                if (confirm("Are you sure you want to clear all chat history?")) {
+                  clearChatMutation.mutate();
+                }
+              }}
+              disabled={clearChatMutation.isPending}
+            >
+              {clearChatMutation.isPending ? (
+                <Loader2 className="w-3 h-3 mr-1 animate-spin" />
+              ) : (
+                <Trash2 className="w-3 h-3 mr-1" />
+              )}
+              Clear chat
             </Button>
           </div>
         </div>
       </Card>
+
+      {/* Language Selection Dialog */}
+      <Dialog open={showLanguageDialog} onOpenChange={setShowLanguageDialog}>
+        <DialogContent aria-describedby="language-dialog-description">
+          <DialogHeader>
+            <DialogTitle>Choose Language</DialogTitle>
+            <DialogDescription id="language-dialog-description">
+              Select a language to translate the last message
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid grid-cols-2 gap-2 mt-4">
+            {languages.map((lang) => (
+              <Button
+                key={lang.code}
+                variant="secondary"
+                className="justify-start h-auto py-3"
+                onClick={() => {
+                  const lastSahai = [...messages].reverse().find(m => m.sender === "sahai");
+                  if (lastSahai) {
+                    sendMessage(`Translate the last message to ${lang.name}`);
+                  } else {
+                    sendMessage(`Please respond in ${lang.name}`);
+                  }
+                  setShowLanguageDialog(false);
+                }}
+              >
+                <span className="text-2xl mr-2">{lang.flag}</span>
+                <span className="font-medium">{lang.name}</span>
+              </Button>
+            ))}
+          </div>
+          <div className="mt-4 p-3 rounded-lg bg-muted/50 border border-border">
+            <p className="text-xs text-muted-foreground">
+              Your preferred language: <span className="font-medium text-foreground">{userLanguage}</span>
+            </p>
+            <p className="text-xs text-muted-foreground mt-1">
+              You can change this in Settings
+            </p>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

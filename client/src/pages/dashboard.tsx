@@ -27,19 +27,23 @@ import {
   Info,
   Zap,
   ArrowRight,
+  Loader2,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import {
-  userProfile,
-  statusChips,
-  riskGuidance,
-  twinState,
-  getGreeting,
-  getCurrentDate,
-  weatherData,
-  weeklyInsights,
-  contextSnapshot,
-} from "@/lib/mock-data";
+import { 
+  useTwinState, 
+  useCurrentRisks, 
+  useWeather, 
+  useCurrentContext,
+  useMedicationAdherence,
+  useCreateMeal,
+  useCreateSymptom,
+  useCreateActivity,
+  useTodayMedications,
+  useMarkMedicationTaken,
+  useCurrentUser,
+} from "@/hooks/use-api";
+import { getGreeting, getCurrentDate } from "@/lib/mock-data";
 import { Link } from "wouter";
 
 const twinStateConfig = {
@@ -78,29 +82,121 @@ export default function Dashboard() {
     goingOut: false,
   });
 
-  const config = twinStateConfig[twinState.state];
+  // Fetch real data from API
+  const { data: twinState, isLoading: twinLoading } = useTwinState();
+  const { data: risksData, isLoading: risksLoading } = useCurrentRisks();
+  const { data: weather } = useWeather();
+  const { data: context } = useCurrentContext();
+  const { data: adherence } = useMedicationAdherence();
+  const { data: userData, isLoading: userLoading, isFetching: userFetching } = useCurrentUser();
+  
+  // Debug logging
+  console.log("Dashboard user data:", userData);
+  console.log("Dashboard user loading:", userLoading, "fetching:", userFetching);
+  
+  // Handle both response formats: { user: {...} } or direct user object
+  const user = userData?.user || userData;
+
+  // Mutations
+  const createMeal = useCreateMeal();
+  const createSymptom = useCreateSymptom();
+  const createActivity = useCreateActivity();
+  const { data: todayMeds } = useTodayMedications();
+  const markMedicationTaken = useMarkMedicationTaken();
+
+  // Use first active risk or create default
+  const riskGuidance = risksData?.alerts?.[0] || {
+    level: "low",
+    title: "Everything looks good",
+    unusual: "No unusual patterns detected",
+    why: "Your routine is on track",
+    action: "Keep up the good work!",
+    baseline: "Following your usual routine",
+    triggers: [],
+  };
+
+  const config = twinStateConfig[twinState?.state || "routine"];
   const risk = riskColors[riskGuidance.level];
 
-  const handleQuickAction = (action: keyof typeof quickActions, label: string) => {
-    setQuickActions(prev => ({ ...prev, [action]: !prev[action] }));
-    toast({
-      title: quickActions[action] ? "Action undone" : "Noted!",
-      description: quickActions[action] ? `Removed: ${label}` : `${label} has been recorded.`,
-    });
+  const handleQuickAction = async (action: keyof typeof quickActions, label: string) => {
+    const newState = !quickActions[action];
+    setQuickActions(prev => ({ ...prev, [action]: newState }));
+
+    if (newState) {
+      try {
+        // Log the action to backend
+        if (action === "tookMeds") {
+          // Mark the first pending medication as taken
+          const pendingMed = todayMeds?.schedule?.find((m: any) => !m.takenAt);
+          if (pendingMed) {
+            await markMedicationTaken.mutateAsync({ medicationId: pendingMed.id });
+            toast({
+              title: "Medication logged",
+              description: `${pendingMed.name} ${pendingMed.dose} marked as taken.`,
+            });
+          } else {
+            toast({
+              title: "No pending medications",
+              description: "All medications for today have been taken or none are scheduled.",
+            });
+            setQuickActions(prev => ({ ...prev, [action]: false }));
+            return;
+          }
+        } else if (action === "ate") {
+          await createMeal.mutateAsync({
+            mealType: "snack",
+            foods: "Quick snack",
+            loggedAt: new Date(),
+          });
+        } else if (action === "feelUnwell") {
+          await createSymptom.mutateAsync({
+            symptom: "General discomfort",
+            severity: 3,
+            loggedAt: new Date(),
+          });
+        } else if (action === "goingOut") {
+          await createActivity.mutateAsync({
+            activity: "going out",
+            loggedAt: new Date(),
+          });
+        }
+      } catch (error: any) {
+        console.error("Quick action error:", error);
+        toast({
+          title: "Action failed",
+          description: error.message || "Please try again or use the detailed page.",
+          variant: "destructive",
+        });
+        setQuickActions(prev => ({ ...prev, [action]: false }));
+      }
+    } else {
+      toast({
+        title: "Action undone",
+        description: `Removed: ${label}`,
+      });
+    }
   };
+
+  if (twinLoading || risksLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-5 animate-fade-in">
       <div className="flex items-end justify-between gap-2">
         <div className="flex flex-col gap-0.5">
           <h1 className="text-2xl font-bold tracking-tight" data-testid="text-greeting">
-            {getGreeting()}, <span className="text-gradient">{userProfile.name}</span>
+            {getGreeting()}, <span className="text-gradient">{user?.name || "User"}</span>
           </h1>
           <p className="text-sm text-muted-foreground" data-testid="text-date">{getCurrentDate()}</p>
         </div>
         <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-muted/60 text-xs text-muted-foreground">
           <CloudSun className="w-3.5 h-3.5 text-amber-500" />
-          <span>{weatherData.temp}</span>
+          <span>{weather?.temp || "32°C"}</span>
         </div>
       </div>
 
@@ -130,16 +226,16 @@ export default function Dashboard() {
                 </Badge>
               </div>
               <p className="text-sm text-muted-foreground leading-relaxed" data-testid="text-twin-status">
-                {twinState.message}
+                {twinState?.message || "Loading..."}
               </p>
               <div className="mt-3 flex items-center gap-2.5">
                 <div className="flex-1 h-2.5 rounded-full bg-muted/80 overflow-hidden">
                   <div
                     className="h-full rounded-full bg-gradient-to-r from-primary to-primary/70 transition-all duration-1000 ease-out"
-                    style={{ width: `${twinState.score}%` }}
+                    style={{ width: `${twinState?.score || 0}%` }}
                   />
                 </div>
-                <span className="text-xs font-bold text-primary tabular-nums">{twinState.score}%</span>
+                <span className="text-xs font-bold text-primary tabular-nums">{twinState?.score || 0}%</span>
               </div>
             </div>
           </div>
@@ -147,19 +243,17 @@ export default function Dashboard() {
       </Card>
 
       <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1 scrollbar-hide" data-testid="status-chips">
-        {statusChips.map(chip => {
-          const Icon = chipIcons[chip.icon] || AlertTriangle;
-          return (
-            <div
-              key={chip.id}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap ${chipColors[chip.type]} shadow-sm`}
-              data-testid={`chip-${chip.id}`}
-            >
-              <Icon className="w-3.5 h-3.5" />
-              {chip.label}
-            </div>
-          );
-        })}
+        {/* Status chips would come from context API - using simplified version for now */}
+        <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap bg-sky-100/80 text-sky-800 dark:bg-sky-900/30 dark:text-sky-300 border border-sky-200/50 dark:border-sky-800/30 shadow-sm">
+          <Home className="w-3.5 h-3.5" />
+          {context?.locationState || "At home"}
+        </div>
+        {weather && (
+          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap bg-amber-100/80 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300 border border-amber-200/50 dark:border-amber-800/30 shadow-sm">
+            <CloudSun className="w-3.5 h-3.5" />
+            {weather.condition}
+          </div>
+        )}
       </div>
 
       <div>
@@ -239,12 +333,15 @@ export default function Dashboard() {
                   <div>
                     <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-0.5">Triggers</p>
                     <ul className="space-y-1.5">
-                      {riskGuidance.triggers.map((t, i) => (
+                      {(riskGuidance.triggers || []).map((t: string, i: number) => (
                         <li key={i} className="flex items-start gap-2">
                           <AlertTriangle className="w-3 h-3 mt-0.5 text-amber-500 dark:text-amber-400 flex-shrink-0" />
                           <span>{t}</span>
                         </li>
                       ))}
+                      {(!riskGuidance.triggers || riskGuidance.triggers.length === 0) && (
+                        <li className="text-muted-foreground">No specific triggers</li>
+                      )}
                     </ul>
                   </div>
                   <div>
@@ -260,9 +357,9 @@ export default function Dashboard() {
 
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5" data-testid="card-context-snapshot">
         {[
-          { icon: Home, label: contextSnapshot.location, color: "text-emerald-500", bg: "bg-emerald-50 dark:bg-emerald-950/20" },
-          { icon: CloudSun, label: contextSnapshot.weather, color: "text-amber-500", bg: "bg-amber-50 dark:bg-amber-950/20" },
-          { icon: Activity, label: contextSnapshot.activity, color: "text-sky-500", bg: "bg-sky-50 dark:bg-sky-950/20" },
+          { icon: Home, label: context?.locationState || "Home", color: "text-emerald-500", bg: "bg-emerald-50 dark:bg-emerald-950/20" },
+          { icon: CloudSun, label: weather?.condition || "Loading...", color: "text-amber-500", bg: "bg-amber-50 dark:bg-amber-950/20" },
+          { icon: Activity, label: context?.currentActivity || "Resting", color: "text-sky-500", bg: "bg-sky-50 dark:bg-sky-950/20" },
         ].map(({ icon: Icon, label, color, bg }, i) => (
           <div key={i} className={`flex items-center gap-2 p-3 rounded-xl ${bg} border border-border/30`}>
             <Icon className={`w-4 h-4 ${color} flex-shrink-0`} />
@@ -288,9 +385,9 @@ export default function Dashboard() {
         <CardContent>
           <div className="grid grid-cols-3 gap-3">
             {[
-              { value: `${weeklyInsights.medAdherence}%`, label: "Med Adherence", color: "text-primary" },
-              { value: `${weeklyInsights.mealsLogged}/${weeklyInsights.totalMeals}`, label: "Meals Logged", color: "text-amber-600 dark:text-amber-400" },
-              { value: `${weeklyInsights.symptomsReported}`, label: "Symptoms", color: "text-red-500 dark:text-red-400" },
+              { value: `${adherence?.week?.rate || 0}%`, label: "Med Adherence", color: "text-primary" },
+              { value: `${adherence?.week?.taken || 0}/${adherence?.week?.total || 0}`, label: "Meals Logged", color: "text-amber-600 dark:text-amber-400" },
+              { value: "0", label: "Symptoms", color: "text-red-500 dark:text-red-400" },
             ].map(({ value, label, color }, i) => (
               <div key={i} className="text-center p-3 rounded-xl bg-muted/40">
                 <p className={`text-xl font-bold ${color} tabular-nums`}>{value}</p>

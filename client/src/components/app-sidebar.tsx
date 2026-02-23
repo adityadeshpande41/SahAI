@@ -10,6 +10,7 @@ import {
   SidebarHeader,
   SidebarFooter,
 } from "@/components/ui/sidebar";
+import { Button } from "@/components/ui/button";
 import {
   LayoutDashboard,
   Pill,
@@ -20,13 +21,17 @@ import {
   Heart,
   Settings,
   Sparkles,
+  LogOut,
+  Dumbbell,
 } from "lucide-react";
-import { userProfile } from "@/lib/mock-data";
+import { useToast } from "@/hooks/use-toast";
+import { useCurrentUser } from "@/hooks/use-api";
 
 const navItems = [
   { title: "Dashboard", url: "/", icon: LayoutDashboard },
   { title: "Medications", url: "/medications", icon: Pill },
   { title: "Meals", url: "/meals", icon: UtensilsCrossed },
+  { title: "Exercise", url: "/exercise", icon: Dumbbell },
   { title: "Symptoms", url: "/symptoms", icon: Activity },
   { title: "Talk to SahAI", url: "/voice", icon: MessageCircle },
   { title: "Insights", url: "/insights", icon: BarChart3 },
@@ -36,6 +41,28 @@ const navItems = [
 
 export function AppSidebar() {
   const [location] = useLocation();
+  const { toast } = useToast();
+  const { data: userData, isLoading, error } = useCurrentUser();
+  
+  // Debug logging
+  console.log("Sidebar user data:", userData);
+  
+  // Handle both response formats: { user: {...} } or direct user object
+  const user = userData?.user || userData || { name: "User", ageGroup: "65-74" };
+
+  const handleLogout = () => {
+    // Clear user session
+    localStorage.removeItem("sahai-user-id");
+    localStorage.removeItem("sahai-authenticated");
+    
+    toast({
+      title: "Logged out",
+      description: "You have been logged out successfully.",
+    });
+    
+    // Redirect to landing page
+    window.location.href = "/landing";
+  };
 
   return (
     <Sidebar>
@@ -57,11 +84,11 @@ export function AppSidebar() {
         <div className="mt-4 p-3 rounded-xl bg-sidebar-accent/50 border border-sidebar-border">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-full bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center text-sm font-bold text-primary">
-              {userProfile.name.charAt(0)}
+              {user.name.charAt(0)}
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-semibold truncate">{userProfile.name}</p>
-              <p className="text-[10px] text-muted-foreground">Age {userProfile.ageGroup}</p>
+              <p className="text-sm font-semibold truncate">{user.name}</p>
+              <p className="text-[10px] text-muted-foreground">Age {user.ageGroup}</p>
             </div>
             <div className="flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-900/30">
               <Sparkles className="w-2.5 h-2.5 text-emerald-600 dark:text-emerald-400" />
@@ -102,7 +129,16 @@ export function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
-      <SidebarFooter className="p-4">
+      <SidebarFooter className="p-4 space-y-2">
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={handleLogout}
+          className="w-full justify-start text-muted-foreground hover:text-foreground"
+        >
+          <LogOut className="w-4 h-4 mr-2" />
+          Logout
+        </Button>
         <div className="p-3 rounded-xl bg-gradient-to-r from-primary/5 to-transparent border border-border/50">
           <div className="flex items-center gap-2 text-xs text-muted-foreground">
             <div className="relative">
