@@ -74,13 +74,13 @@ export class FutureSelfAgent {
 
       // Check hydration
       const totalHydration = meals?.reduce((sum, m) => sum + (Number(m.hydration) || 0), 0) || 0;
-      if (totalHydration < 4 && currentHour >= 12) {
-        driftFactors.push("Low water intake");
+      if (totalHydration < 6 && currentHour >= 12) {
+        driftFactors.push("Low water intake (less than 6 glasses)");
       }
 
       // Check physical activity
-      if (activities?.length === 0 && currentHour >= 16) {
-        driftFactors.push("No physical activity today");
+      if (activities?.length === 0 && currentHour >= 14) {
+        driftFactors.push("No physical activity logged yet today");
       }
 
       // Check recent symptoms

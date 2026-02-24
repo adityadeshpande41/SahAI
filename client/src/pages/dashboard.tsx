@@ -101,6 +101,7 @@ export default function Dashboard() {
   // Debug logging
   console.log("Dashboard user data:", userData);
   console.log("Dashboard user loading:", userLoading, "fetching:", userFetching);
+  console.log("Future Self data:", futureSelf);
   
   // Handle both response formats: { user: {...} } or direct user object
   const user = userData?.user || userData;
