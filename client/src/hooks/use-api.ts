@@ -39,6 +39,14 @@ export function useDailyQuote() {
   });
 }
 
+export function useFutureSelfPrediction() {
+  return useQuery({
+    queryKey: ["future-self"],
+    queryFn: api.getFutureSelfPrediction,
+    refetchInterval: 300000, // Refresh every 5 minutes
+  });
+}
+
 export function useExerciseMotivation() {
   return useQuery({
     queryKey: ["exercise-motivation"],

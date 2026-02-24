@@ -45,6 +45,7 @@ import {
   useStreaks,
   useMotivation,
   useDailyQuote,
+  useFutureSelfPrediction,
 } from "@/hooks/use-api";
 import { getGreeting, getCurrentDate } from "@/lib/mock-data";
 import { Link } from "wouter";
@@ -95,6 +96,7 @@ export default function Dashboard() {
   const { data: streaksData } = useStreaks();
   const { data: motivationData } = useMotivation();
   const { data: dailyQuote } = useDailyQuote();
+  const { data: futureSelf } = useFutureSelfPrediction();
   
   // Debug logging
   console.log("Dashboard user data:", userData);
@@ -216,6 +218,105 @@ export default function Dashboard() {
                 <p className="text-sm font-medium text-sky-900 dark:text-sky-100 leading-relaxed italic">
                   "{dailyQuote.quote}"
                 </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Future Self Mode Card */}
+      {futureSelf && futureSelf.driftFactors && futureSelf.driftFactors.length > 0 && (
+        <Card className="card-elevated border-2 border-purple-200 dark:border-purple-800 bg-gradient-to-br from-purple-50 via-pink-50 to-orange-50 dark:from-purple-950/30 dark:via-pink-950/30 dark:to-orange-950/30 overflow-hidden">
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center">
+                  <Zap className="w-4 h-4 text-white" />
+                </div>
+                <div>
+                  <CardTitle className="text-base font-bold">Future Self Mode</CardTitle>
+                  <p className="text-xs text-muted-foreground">Your next {futureSelf.currentPath.timeframe}</p>
+                </div>
+              </div>
+              <Badge 
+                variant="secondary" 
+                className={`text-[10px] ${
+                  futureSelf.urgency === 'high' ? 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300' :
+                  futureSelf.urgency === 'medium' ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300' :
+                  'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300'
+                }`}
+              >
+                {futureSelf.urgency} urgency
+              </Badge>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {/* Drift Factors */}
+            <div className="flex flex-wrap gap-1.5">
+              {futureSelf.driftFactors.map((factor: string, i: number) => (
+                <Badge key={i} variant="outline" className="text-[10px] bg-white/60 dark:bg-black/20">
+                  {factor}
+                </Badge>
+              ))}
+            </div>
+
+            {/* Current Path */}
+            <div className="relative p-3 rounded-xl bg-gradient-to-br from-red-50 to-orange-50 dark:from-red-950/30 dark:to-orange-950/30 border border-red-200 dark:border-red-800">
+              <div className="flex items-start gap-2 mb-2">
+                <AlertTriangle className="w-4 h-4 text-red-600 dark:text-red-400 mt-0.5 flex-shrink-0" />
+                <div className="flex-1">
+                  <h4 className="text-sm font-bold text-red-900 dark:text-red-100">{futureSelf.currentPath.title}</h4>
+                  <p className="text-xs text-red-800 dark:text-red-200 mt-1 leading-relaxed">{futureSelf.currentPath.description}</p>
+                </div>
+              </div>
+              <div className="space-y-1 mt-2">
+                {futureSelf.currentPath.risks.map((risk: string, i: number) => (
+                  <div key={i} className="flex items-start gap-1.5 text-xs text-red-700 dark:text-red-300">
+                    <span className="text-red-500 mt-0.5">•</span>
+                    <span>{risk}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Better Path */}
+            <div className="relative p-3 rounded-xl bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-emerald-950/30 dark:to-teal-950/30 border border-emerald-200 dark:border-emerald-800">
+              <div className="flex items-start gap-2 mb-2">
+                <Check className="w-4 h-4 text-emerald-600 dark:text-emerald-400 mt-0.5 flex-shrink-0" />
+                <div className="flex-1">
+                  <h4 className="text-sm font-bold text-emerald-900 dark:text-emerald-100">{futureSelf.betterPath.title}</h4>
+                  <p className="text-xs text-emerald-800 dark:text-emerald-200 mt-1 leading-relaxed">{futureSelf.betterPath.description}</p>
+                </div>
+              </div>
+              <div className="space-y-1 mt-2">
+                {futureSelf.betterPath.benefits.map((benefit: string, i: number) => (
+                  <div key={i} className="flex items-start gap-1.5 text-xs text-emerald-700 dark:text-emerald-300">
+                    <span className="text-emerald-500 mt-0.5">✓</span>
+                    <span>{benefit}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Action Button */}
+            <Link href="/voice">
+              <Button className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white shadow-lg">
+                <MessageCircle className="w-4 h-4 mr-2" />
+                Help me get back on track
+                <ArrowRight className="w-4 h-4 ml-2" />
+              </Button>
+            </Link>
+
+            {/* Quick Actions */}
+            <div className="space-y-1.5">
+              <p className="text-xs font-semibold text-muted-foreground">Quick actions to improve:</p>
+              <div className="space-y-1">
+                {futureSelf.betterPath.actions.map((action: string, i: number) => (
+                  <div key={i} className="flex items-start gap-2 text-xs p-2 rounded-lg bg-white/60 dark:bg-black/20">
+                    <span className="text-purple-600 dark:text-purple-400 font-bold">{i + 1}.</span>
+                    <span className="flex-1">{action}</span>
+                  </div>
+                ))}
               </div>
             </div>
           </CardContent>

@@ -371,6 +371,26 @@ export async function getDailyQuote() {
   return apiCall<{ quote: string }>("/motivation/daily-quote");
 }
 
+export async function getFutureSelfPrediction() {
+  return apiCall<{
+    currentPath: {
+      title: string;
+      description: string;
+      risks: string[];
+      riskLevel: "low" | "medium" | "high";
+      timeframe: string;
+    };
+    betterPath: {
+      title: string;
+      description: string;
+      benefits: string[];
+      actions: string[];
+    };
+    driftFactors: string[];
+    urgency: "low" | "medium" | "high";
+  }>("/future-self/prediction");
+}
+
 export async function getMealMotivation(foodItems: string, calories: number) {
   return apiCall<{ message: string }>("/motivation/meal", {
     method: "POST",

@@ -1680,6 +1680,36 @@ Keep it simple and safe for elderly users.`,
   });
 
   // ============================================
+  // FUTURE SELF PREDICTION API
+  // ============================================
+  
+  app.get("/api/future-self/prediction", async (req, res) => {
+    try {
+      const user = await getCurrentUser(req);
+      if (!user) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      const { FutureSelfAgent } = await import("./agents/future-self-agent");
+      const futureSelfAgent = new FutureSelfAgent();
+      
+      const result = await futureSelfAgent.execute(
+        { action: "predict_paths" },
+        { user, currentTime: new Date() }
+      );
+
+      if (!result.success) {
+        return res.status(500).json({ error: result.message });
+      }
+
+      res.json(result.data);
+    } catch (error: any) {
+      console.error("Future self prediction error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // ============================================
   // CONTEXT API
   // ============================================
   
