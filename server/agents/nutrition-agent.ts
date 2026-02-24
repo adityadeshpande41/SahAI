@@ -279,4 +279,42 @@ Consider medication interactions (e.g., blood thinners + leafy greens, diabetes 
       data: compliance,
     };
   }
+
+  async getMealImprovementSuggestions(
+    mealData: { foods: string; mealType: string; estimatedCalories?: number },
+    context: AgentContext
+  ): Promise<{ suggestions: string[]; macroAnalysis: string; improvements: string }> {
+    const systemPrompt = `You are a nutrition expert helping elderly users improve their meals. Analyze the meal and provide:
+1. Macro-nutrient balance assessment
+2. Specific, actionable improvements
+3. Simple suggestions they can implement
+
+Be encouraging and practical. Focus on adding nutrients, not removing foods.`;
+
+    const userPrompt = `Meal: ${mealData.foods}
+Meal Type: ${mealData.mealType}
+${mealData.estimatedCalories ? `Estimated Calories: ${mealData.estimatedCalories}` : ''}
+
+Provide:
+1. Quick macro-nutrient analysis (protein, carbs, fats, fiber)
+2. 3-4 specific improvements to achieve better nutrition
+3. Simple additions or swaps to balance the meal
+
+Format as JSON:
+{
+  "macroAnalysis": "brief analysis of protein/carbs/fats/fiber balance",
+  "improvements": "paragraph with specific actionable improvements",
+  "suggestions": ["suggestion 1", "suggestion 2", "suggestion 3"]
+}`;
+
+    const response = await this.callOpenAI([
+      { role: "system", content: systemPrompt },
+      { role: "user", content: userPrompt },
+    ], {
+      temperature: 0.7,
+      response_format: { type: "json_object" },
+    });
+
+    return JSON.parse(response.choices[0].message.content);
+  }
 }

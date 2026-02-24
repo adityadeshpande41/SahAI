@@ -30,9 +30,10 @@ import {
   Sparkles,
   Brain,
   Target,
+  Heart,
 } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
-import { useSummary, useMedicationAdherence, useWeather, useTodayMedications, useTodayMeals, useUserPreferences, useMealSuggestion, useSymptomPrediction, useActivitySuggestion, useTodayActivities } from "@/hooks/use-api";
+import { useSummary, useMedicationAdherence, useWeather, useTodayMedications, useTodayMeals, useUserPreferences, useMealSuggestion, useSymptomPrediction, useActivitySuggestion, useTodayActivities, useTodayVitals } from "@/hooks/use-api";
 
 export default function Insights() {
   const { data: morningSummary, isLoading: morningLoading } = useSummary("morning");
@@ -44,6 +45,8 @@ export default function Insights() {
   const { data: medicationsData } = useTodayMedications();
   const { data: mealsData } = useTodayMeals();
   const { data: activitiesData } = useTodayActivities();
+  const { data: bloodSugarData } = useTodayVitals("blood_sugar");
+  const { data: bloodPressureData } = useTodayVitals("blood_pressure");
   
   // Learning features
   const { data: preferences, isLoading: prefsLoading } = useUserPreferences();
@@ -285,6 +288,135 @@ export default function Insights() {
               <Activity className="w-8 h-8 text-muted-foreground/50 mx-auto mb-2" />
               <p className="text-sm text-muted-foreground">No workouts logged today</p>
               <p className="text-xs text-muted-foreground mt-1">Start tracking your activities!</p>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Blood Sugar Summary */}
+      <Card className="card-elevated bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-950/20 dark:to-indigo-950/20 border-blue-200 dark:border-blue-800" data-testid="card-blood-sugar">
+        <CardHeader className="pb-2">
+          <div className="flex items-center gap-2">
+            <Droplets className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+            <CardTitle className="text-sm font-semibold">Blood Sugar</CardTitle>
+            <Badge variant="secondary" className="ml-auto text-xs">
+              Today
+            </Badge>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {bloodSugarData && bloodSugarData.vitals && bloodSugarData.vitals.length > 0 ? (
+            <>
+              <div className="grid grid-cols-3 gap-3">
+                <div className="space-y-1">
+                  <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                    <Activity className="w-3 h-3" /> Readings
+                  </div>
+                  <p className="text-lg font-bold text-blue-600 dark:text-blue-400">
+                    {bloodSugarData.vitals.length}
+                  </p>
+                </div>
+                <div className="space-y-1">
+                  <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                    <Target className="w-3 h-3" /> Average
+                  </div>
+                  <p className="text-lg font-bold text-primary">
+                    {Math.round(bloodSugarData.vitals.reduce((sum: number, v: any) => sum + (v.bloodSugar || 0), 0) / bloodSugarData.vitals.length)}
+                  </p>
+                </div>
+                <div className="space-y-1">
+                  <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                    <CheckCircle className="w-3 h-3" /> Status
+                  </div>
+                  <Badge variant="outline" className="text-xs text-emerald-600 dark:text-emerald-400">
+                    Normal
+                  </Badge>
+                </div>
+              </div>
+
+              {/* Latest Reading */}
+              <div className="pt-2 border-t border-border/50">
+                <p className="text-xs font-medium mb-2">Latest Reading</p>
+                <div className="flex items-center justify-between p-2 rounded-lg bg-background/60 border border-border/50">
+                  <div>
+                    <p className="text-sm font-medium">{bloodSugarData.vitals[0].bloodSugar} mg/dL</p>
+                    <p className="text-xs text-muted-foreground">
+                      {bloodSugarData.vitals[0].measurementType} • {new Date(bloodSugarData.vitals[0].loggedAt).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
+                    </p>
+                  </div>
+                  <ArrowDown className="w-4 h-4 text-emerald-500" />
+                </div>
+              </div>
+            </>
+          ) : (
+            <div className="text-center py-4">
+              <p className="text-sm text-muted-foreground">No blood sugar readings today</p>
+              <p className="text-xs text-muted-foreground mt-1">Log your first reading in the Vitals page</p>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Blood Pressure Summary */}
+      <Card className="card-elevated bg-gradient-to-br from-red-50 to-pink-50 dark:from-red-950/20 dark:to-pink-950/20 border-red-200 dark:border-red-800" data-testid="card-blood-pressure">
+        <CardHeader className="pb-2">
+          <div className="flex items-center gap-2">
+            <Heart className="w-4 h-4 text-red-600 dark:text-red-400" />
+            <CardTitle className="text-sm font-semibold">Blood Pressure</CardTitle>
+            <Badge variant="secondary" className="ml-auto text-xs">
+              Today
+            </Badge>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {bloodPressureData && bloodPressureData.vitals && bloodPressureData.vitals.length > 0 ? (
+            <>
+              <div className="grid grid-cols-3 gap-3">
+                <div className="space-y-1">
+                  <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                    <Activity className="w-3 h-3" /> Readings
+                  </div>
+                  <p className="text-lg font-bold text-red-600 dark:text-red-400">
+                    {bloodPressureData.vitals.length}
+                  </p>
+                </div>
+                <div className="space-y-1">
+                  <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                    <Target className="w-3 h-3" /> Average
+                  </div>
+                  <p className="text-lg font-bold text-primary">
+                    {Math.round(bloodPressureData.vitals.reduce((sum: number, v: any) => sum + (v.systolic || 0), 0) / bloodPressureData.vitals.length)}/
+                    {Math.round(bloodPressureData.vitals.reduce((sum: number, v: any) => sum + (v.diastolic || 0), 0) / bloodPressureData.vitals.length)}
+                  </p>
+                </div>
+                <div className="space-y-1">
+                  <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                    <CheckCircle className="w-3 h-3" /> Status
+                  </div>
+                  <Badge variant="outline" className="text-xs text-emerald-600 dark:text-emerald-400">
+                    Normal
+                  </Badge>
+                </div>
+              </div>
+
+              {/* Latest Reading */}
+              <div className="pt-2 border-t border-border/50">
+                <p className="text-xs font-medium mb-2">Latest Reading</p>
+                <div className="flex items-center justify-between p-2 rounded-lg bg-background/60 border border-border/50">
+                  <div>
+                    <p className="text-sm font-medium">{bloodPressureData.vitals[0].systolic}/{bloodPressureData.vitals[0].diastolic} mmHg</p>
+                    <p className="text-xs text-muted-foreground">
+                      {new Date(bloodPressureData.vitals[0].loggedAt).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
+                    </p>
+                  </div>
+                  <ArrowUp className="w-4 h-4 text-amber-500" />
+                </div>
+              </div>
+            </>
+          ) : (
+            <div className="text-center py-4">
+              <p className="text-sm text-muted-foreground">No blood pressure readings today</p>
+              <p className="text-xs text-muted-foreground mt-1">Log your first reading in the Vitals page</p>
             </div>
           )}
         </CardContent>

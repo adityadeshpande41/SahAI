@@ -38,6 +38,9 @@ export interface IStorage {
   getTodayMeals(userId: string): Promise<MealLog[]>;
   getRecentMeals(userId: string, count: number): Promise<MealLog[]>;
   getHistoricalMeals(userId: string, days: number): Promise<MealLog[]>;
+  deleteMealLog(mealId: number, userId: string): Promise<void>;
+  updateMealLog(mealId: number, userId: string, data: { foods?: string; estimatedCalories?: number }): Promise<MealLog>;
+  getMealStreak(userId: string): Promise<number>;
 
   // Symptoms
   createSymptomLog(userId: string, data: any): Promise<SymptomLog>;
@@ -88,6 +91,14 @@ export interface IStorage {
   // Context Snapshots
   createContextSnapshot(userId: string, data: any): Promise<void>;
   getContextSnapshots(userId: string, count: number): Promise<any[]>;
+
+  // Health Vitals
+  createHealthVital(userId: string, data: any): Promise<any>;
+  getTodayVitals(userId: string, vitalType?: string): Promise<any[]>;
+  getRecentVitals(userId: string, vitalType: string, count: number): Promise<any[]>;
+  getVitalsStreak(userId: string): Promise<number>;
+  getMedicationStreak(userId: string): Promise<number>;
+  getUserStreaks(userId: string): Promise<{ medication: number; meals: number; vitals: number }>;
 }
 
 export class MemStorage implements IStorage {
@@ -327,6 +338,29 @@ export class MemStorage implements IStorage {
     return Array.from(this.mealLogs.values()).filter(
       m => m.userId === userId && new Date(m.loggedAt) >= cutoff
     );
+  }
+
+  async deleteMealLog(mealId: number, userId: string): Promise<void> {
+    const meal = this.mealLogs.get(mealId);
+    if (!meal || meal.userId !== userId) {
+      throw new Error("Meal not found or unauthorized");
+    }
+    this.mealLogs.delete(mealId);
+  }
+
+  async updateMealLog(mealId: number, userId: string, data: { foods?: string; estimatedCalories?: number }): Promise<MealLog> {
+    const meal = this.mealLogs.get(mealId);
+    if (!meal || meal.userId !== userId) {
+      throw new Error("Meal not found or unauthorized");
+    }
+    
+    const updated = {
+      ...meal,
+      ...data,
+    };
+    
+    this.mealLogs.set(mealId, updated);
+    return updated;
   }
 
   // Symptoms
@@ -592,6 +626,117 @@ export class MemStorage implements IStorage {
       .filter(s => s.userId === userId)
       .sort((a, b) => new Date(b.capturedAt).getTime() - new Date(a.capturedAt).getTime())
       .slice(0, count);
+  }
+
+  // Health Vitals
+  private healthVitals: Map<string, any> = new Map();
+
+  async createHealthVital(userId: string, data: any): Promise<any> {
+    const id = randomUUID();
+    const vital = {
+      id,
+      userId,
+      ...data,
+      loggedAt: data.loggedAt || new Date(),
+      createdAt: new Date(),
+    };
+    this.healthVitals.set(id, vital);
+    return vital;
+  }
+
+  async getTodayVitals(userId: string, vitalType?: string): Promise<any[]> {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    return Array.from(this.healthVitals.values())
+      .filter(v => {
+        const matchesUser = v.userId === userId;
+        const matchesDate = new Date(v.loggedAt) >= today;
+        const matchesType = !vitalType || v.vitalType === vitalType;
+        return matchesUser && matchesDate && matchesType;
+      })
+      .sort((a, b) => new Date(b.loggedAt).getTime() - new Date(a.loggedAt).getTime());
+  }
+
+  async getRecentVitals(userId: string, vitalType: string, count: number): Promise<any[]> {
+    return Array.from(this.healthVitals.values())
+      .filter(v => v.userId === userId && v.vitalType === vitalType)
+      .sort((a, b) => new Date(b.loggedAt).getTime() - new Date(a.loggedAt).getTime())
+      .slice(0, count);
+  }
+
+  async getMealStreak(userId: string): Promise<number> {
+    const meals = Array.from(this.mealLogs.values())
+      .filter(m => m.userId === userId)
+      .sort((a, b) => new Date(b.loggedAt).getTime() - new Date(a.loggedAt).getTime());
+    
+    return this.calculateStreak(meals.map(m => m.loggedAt));
+  }
+
+  async getVitalsStreak(userId: string): Promise<number> {
+    const vitals = Array.from(this.healthVitals.values())
+      .filter(v => v.userId === userId)
+      .sort((a, b) => new Date(b.loggedAt).getTime() - new Date(a.loggedAt).getTime());
+    
+    return this.calculateStreak(vitals.map(v => v.loggedAt));
+  }
+
+  async getMedicationStreak(userId: string): Promise<number> {
+    const schedules = Array.from(this.medicationSchedules.values())
+      .filter(s => s.userId === userId && s.takenAt)
+      .sort((a, b) => new Date(b.takenAt!).getTime() - new Date(a.takenAt!).getTime());
+    
+    return this.calculateStreak(schedules.map(s => s.takenAt!));
+  }
+
+  async getUserStreaks(userId: string): Promise<{ medication: number; meals: number; vitals: number }> {
+    const [medication, meals, vitals] = await Promise.all([
+      this.getMedicationStreak(userId),
+      this.getMealStreak(userId),
+      this.getVitalsStreak(userId),
+    ]);
+    
+    return { medication, meals, vitals };
+  }
+
+  private calculateStreak(dates: Date[]): number {
+    if (dates.length === 0) return 0;
+    
+    let streak = 0;
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    // Check if there's an entry today or yesterday (to allow for current streak)
+    const mostRecent = new Date(dates[0]);
+    mostRecent.setHours(0, 0, 0, 0);
+    
+    const daysDiff = Math.floor((today.getTime() - mostRecent.getTime()) / (1000 * 60 * 60 * 24));
+    if (daysDiff > 1) return 0; // Streak broken
+    
+    // Count consecutive days
+    const uniqueDays = new Set<string>();
+    for (const date of dates) {
+      const d = new Date(date);
+      d.setHours(0, 0, 0, 0);
+      uniqueDays.add(d.toISOString().split('T')[0]);
+    }
+    
+    const sortedDays = Array.from(uniqueDays).sort().reverse();
+    
+    for (let i = 0; i < sortedDays.length; i++) {
+      const currentDay = new Date(sortedDays[i]);
+      const expectedDay = new Date(today);
+      expectedDay.setDate(expectedDay.getDate() - i);
+      expectedDay.setHours(0, 0, 0, 0);
+      
+      if (currentDay.toISOString().split('T')[0] === expectedDay.toISOString().split('T')[0]) {
+        streak++;
+      } else {
+        break;
+      }
+    }
+    
+    return streak;
   }
 }
 

@@ -170,6 +170,40 @@ export async function getTodayMeals() {
   return apiCall<{ meals: any[] }>("/meals/today");
 }
 
+export async function deleteMeal(mealId: number) {
+  return apiCall<{ success: boolean }>(`/meals/${mealId}`, {
+    method: "DELETE",
+  });
+}
+
+export async function updateMeal(mealId: number, data: { foods?: string; estimatedCalories?: number }) {
+  return apiCall<{ meal: any }>(`/meals/${mealId}`, {
+    method: "PATCH",
+    body: JSON.stringify(data),
+  });
+}
+
+export async function getMealAIInsights(data: { foods: string; mealType: string; estimatedCalories?: number }) {
+  return apiCall<{ suggestions: string[]; macroAnalysis: string; improvements: string }>("/meals/ai-insights", {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+}
+
+export async function getActivityAIInsights(data: { activity: string; duration?: number }) {
+  return apiCall<{ insights: string; tips: string[]; complementary: string }>("/activities/ai-insights", {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+}
+
+export async function getMedicationAIInsights(medicationName: string) {
+  return apiCall<{ insights: string; tips: string[]; timing: string }>("/medications/ai-insights", {
+    method: "POST",
+    body: JSON.stringify({ medicationName }),
+  });
+}
+
 // ============================================
 // SYMPTOMS API
 // ============================================
@@ -267,6 +301,10 @@ export async function getSummaryHistory(type: string, limit = 10) {
   return apiCall<{ summaries: any[] }>(`/summaries/${type}/history?limit=${limit}`);
 }
 
+export async function exportHealthData(days: number) {
+  return apiCall<any>(`/health-data/export?days=${days}`);
+}
+
 // ============================================
 // CAREGIVER API
 // ============================================
@@ -319,6 +357,41 @@ export async function getUserPreferences() {
 
 export async function getMealSuggestion() {
   return apiCall<any>("/insights/meal-suggestion");
+}
+
+export async function getStreaks() {
+  return apiCall<{ streaks: { medication: number; meals: number; vitals: number } }>("/streaks");
+}
+
+export async function getMotivation() {
+  return apiCall<{ message: string; streaks: { medication: number; meals: number; vitals: number } }>("/motivation");
+}
+
+export async function getDailyQuote() {
+  return apiCall<{ quote: string }>("/motivation/daily-quote");
+}
+
+export async function getMealMotivation(foodItems: string, calories: number) {
+  return apiCall<{ message: string }>("/motivation/meal", {
+    method: "POST",
+    body: JSON.stringify({ foodItems, calories }),
+  });
+}
+
+export async function getExerciseMotivation() {
+  return apiCall<{ message: string; hasExercisedToday: boolean }>("/motivation/exercise");
+}
+
+export async function getVitalsMotivation() {
+  return apiCall<{ message: string }>("/motivation/vitals");
+}
+
+export async function getSymptomsMotivation() {
+  return apiCall<{ message: string }>("/motivation/symptoms");
+}
+
+export async function getMedicationsMotivation() {
+  return apiCall<{ message: string }>("/motivation/medications");
 }
 
 export async function getSymptomPrediction() {
@@ -452,4 +525,46 @@ export async function createUser(data: {
 
 export async function getCurrentUser() {
   return apiCall<{ user: any }>("/users/me");
+}
+
+// ============================================
+// HEALTH VITALS API
+// ============================================
+
+export async function createVital(data: {
+  vitalType: "blood_sugar" | "blood_pressure" | "weight" | "heart_rate";
+  bloodSugar?: number;
+  measurementType?: "fasting" | "post_meal" | "random";
+  systolic?: number;
+  diastolic?: number;
+  weight?: number;
+  heartRate?: number;
+  notes?: string;
+  loggedAt?: Date | string;
+}) {
+  try {
+    const loggedAtISO = data.loggedAt 
+      ? (data.loggedAt instanceof Date ? data.loggedAt.toISOString() : new Date(data.loggedAt).toISOString())
+      : new Date().toISOString();
+    
+    return apiCall<{ vital: any }>("/vitals", {
+      method: "POST",
+      body: JSON.stringify({
+        ...data,
+        loggedAt: loggedAtISO,
+      }),
+    });
+  } catch (error: any) {
+    console.error("Error creating vital:", error);
+    throw new Error(error.message || "Failed to log vital");
+  }
+}
+
+export async function getTodayVitals(vitalType?: string) {
+  const query = vitalType ? `?type=${vitalType}` : "";
+  return apiCall<{ vitals: any[] }>(`/vitals/today${query}`);
+}
+
+export async function getRecentVitals(vitalType: string, count = 10) {
+  return apiCall<{ vitals: any[] }>(`/vitals/recent?type=${vitalType}&count=${count}`);
 }

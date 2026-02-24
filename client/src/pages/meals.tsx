@@ -24,11 +24,13 @@ import {
   Pencil,
   X,
   AlertTriangle,
+  Sparkles,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useTodayMeals, useCreateMeal, useUploadMealPhoto } from "@/hooks/use-api";
 import { useVoiceRecording } from "@/hooks/use-voice-recording";
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from "recharts";
+import * as api from "@/lib/api-client";
 
 const mealIcons: Record<string, typeof Coffee> = {
   breakfast: Coffee,
@@ -76,6 +78,10 @@ export default function Meals() {
   const [commonFoods, setCommonFoods] = useState(defaultCommonFoods);
   const [editingFoodIndex, setEditingFoodIndex] = useState<number | null>(null);
   const [editForm, setEditForm] = useState({ name: "", emoji: "", calories: 0, quantity: "" });
+  const [mealMotivation, setMealMotivation] = useState<string | null>(null);
+  const [photoMotivation, setPhotoMotivation] = useState<string | null>(null);
+  const [aiInsights, setAiInsights] = useState<any>(null);
+  const [loadingInsights, setLoadingInsights] = useState(false);
 
   const logMeal = async (mealType: string, foods?: string, estimatedCalories?: number) => {
     await createMeal.mutateAsync({
@@ -86,6 +92,26 @@ export default function Meals() {
     });
     setAddingMeal(null);
     setMealText("");
+    
+    // Fetch meal-specific motivation
+    try {
+      const response = await fetch("/api/motivation/meal", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          foodItems: foods || mealText || "meal",
+          calories: estimatedCalories || 200,
+        }),
+      });
+      const data = await response.json();
+      if (data.message) {
+        setMealMotivation(data.message);
+        setTimeout(() => setMealMotivation(null), 10000); // Clear after 10 seconds
+      }
+    } catch (error) {
+      console.error("Failed to fetch meal motivation:", error);
+    }
+    
     toast({
       title: "Meal logged",
       description: `${mealType} has been recorded.`,
@@ -95,6 +121,26 @@ export default function Meals() {
   const quickLogFood = async (foodName: string, calories: number, quantity: string) => {
     const currentMealType = getCurrentMealType();
     await logMeal(currentMealType, `${foodName} (${quantity})`, calories);
+  };
+
+  const learnWithAI = async (foods: string, mealType: string, calories?: number) => {
+    setLoadingInsights(true);
+    try {
+      const insights = await api.getMealAIInsights({
+        foods,
+        mealType,
+        estimatedCalories: calories,
+      });
+      setAiInsights(insights);
+    } catch (error: any) {
+      toast({
+        title: "AI Insights failed",
+        description: error.message || "Failed to get AI insights",
+        variant: "destructive",
+      });
+    } finally {
+      setLoadingInsights(false);
+    }
   };
 
   const getCurrentMealType = () => {
@@ -184,10 +230,35 @@ export default function Meals() {
     setSelectedMealType(getCurrentMealType());
     
     setUploadingPhoto(true);
+    setPhotoMotivation(null);
     try {
       const result = await uploadMealPhoto.mutateAsync({ file, mealType: "lunch" });
       console.log("Photo analysis result:", result.analysis);
       setPhotoAnalysis(result.analysis);
+      
+      // Fetch AI motivation for this food
+      const foodItems = result.analysis.foodItems?.map((item: any) => item.name).join(", ") 
+        || result.analysis.foods?.join(", ") 
+        || result.analysis.detectedFoods?.join(", ") 
+        || "food";
+      const calories = result.analysis.foodItems?.reduce((sum: number, item: any) => sum + (item.calories || 0), 0)
+        || result.analysis.nutritionEstimate?.calories 
+        || result.analysis.estimatedCalories 
+        || 300;
+      
+      try {
+        const motivationResponse = await fetch("/api/motivation/meal", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ foodItems, calories }),
+        });
+        const motivationData = await motivationResponse.json();
+        if (motivationData.message) {
+          setPhotoMotivation(motivationData.message);
+        }
+      } catch (error) {
+        console.error("Failed to fetch photo motivation:", error);
+      }
     } catch (error) {
       console.error("Photo upload failed:", error);
     } finally {
@@ -212,6 +283,22 @@ export default function Meals() {
         <h1 className="text-2xl font-bold tracking-tight text-gradient" data-testid="text-meals-title">Meals & Nutrition</h1>
         <p className="text-sm text-muted-foreground mt-1">Track your meals and hydration</p>
       </div>
+
+      {/* Meal Motivation Card */}
+      {mealMotivation && (
+        <Card className="card-elevated bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-950/20 dark:to-orange-950/20 border-amber-200 dark:border-amber-800 animate-slide-up">
+          <CardContent className="p-4">
+            <div className="flex items-start gap-3">
+              <div className="text-2xl">🥗</div>
+              <div className="flex-1">
+                <p className="text-sm font-medium text-amber-900 dark:text-amber-100 leading-relaxed">
+                  {mealMotivation}
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Calorie Goal Card */}
       <Card className="card-elevated" data-testid="card-calorie-goal">
@@ -880,6 +967,18 @@ export default function Meals() {
                   </div>
                 )}
 
+                {/* AI Motivation for this food */}
+                {photoMotivation && (
+                  <div className="flex items-start gap-2 p-3 rounded-lg bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-950/20 dark:to-emerald-950/20 border border-green-200 dark:border-green-800 animate-slide-up">
+                    <div className="text-lg">🥗</div>
+                    <div className="flex-1">
+                      <p className="text-xs font-medium text-green-900 dark:text-green-100 leading-relaxed">
+                        {photoMotivation}
+                      </p>
+                    </div>
+                  </div>
+                )}
+
                 {/* Meal Type Selector */}
                 <div className="space-y-1.5">
                   <Label className="text-xs font-medium">Add to Meal</Label>
@@ -953,33 +1052,67 @@ export default function Meals() {
         </Card>
       </div>
 
-      <Card data-testid="card-med-link">
-        <CardContent className="p-4">
-          <div className="flex items-start gap-3">
-            <Pill className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
-            <div>
-              <p className="text-sm font-medium">Medication-Meal Link</p>
-              <p className="text-xs text-muted-foreground mt-0.5">
-                Your Metformin (8 PM) needs to be taken after food. Make sure to have dinner before taking it.
-              </p>
+      {/* Learn with AI Card */}
+      {meals && meals.meals && meals.meals.length > 0 && (
+        <Card className="card-elevated bg-gradient-to-r from-purple-50 to-indigo-50 dark:from-purple-950/20 dark:to-indigo-950/20 border-purple-200 dark:border-purple-800" data-testid="card-learn-ai">
+          <CardContent className="p-4 space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Sparkles className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+                <h3 className="font-semibold text-sm">Learn with AI</h3>
+              </div>
+              <Button
+                size="sm"
+                variant="secondary"
+                onClick={() => {
+                  const lastMeal = meals.meals[0];
+                  learnWithAI(lastMeal.foods, lastMeal.mealType, lastMeal.estimatedCalories);
+                }}
+                disabled={loadingInsights}
+                data-testid="button-learn-ai"
+              >
+                {loadingInsights ? (
+                  <><Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" /> Analyzing...</>
+                ) : (
+                  <><Sparkles className="w-3.5 h-3.5 mr-1" /> Get Insights</>
+                )}
+              </Button>
             </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      <Card className="glass bg-sky-50/50 dark:bg-sky-950/10 border-sky-200 dark:border-sky-800" data-testid="card-hydration-nudge">
-        <CardContent className="p-4">
-          <div className="flex items-start gap-3">
-            <Droplets className="w-5 h-5 text-sky-500 mt-0.5 flex-shrink-0" />
-            <div>
-              <p className="text-sm font-medium">Hydration Reminder</p>
-              <p className="text-xs text-muted-foreground mt-0.5">
-                It's 32°C and warm today. You've had 2 glasses so far — try to drink at least 6-8 glasses. Staying hydrated helps your Metformin work better and reduces dizziness risk.
+            
+            {aiInsights && (
+              <div className="space-y-3 animate-slide-up">
+                <div className="rounded-md bg-white/60 dark:bg-black/20 p-3 space-y-2">
+                  <div>
+                    <p className="text-xs font-semibold text-purple-700 dark:text-purple-300 uppercase tracking-wide">Macro Analysis</p>
+                    <p className="text-sm mt-1">{aiInsights.macroAnalysis}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs font-semibold text-purple-700 dark:text-purple-300 uppercase tracking-wide">Improvements</p>
+                    <p className="text-sm mt-1">{aiInsights.improvements}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs font-semibold text-purple-700 dark:text-purple-300 uppercase tracking-wide">Quick Tips</p>
+                    <ul className="space-y-1 mt-1">
+                      {aiInsights.suggestions.map((tip: string, idx: number) => (
+                        <li key={idx} className="text-sm flex items-start gap-2">
+                          <Check className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400 mt-0.5 flex-shrink-0" />
+                          <span>{tip}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            )}
+            
+            {!aiInsights && !loadingInsights && (
+              <p className="text-xs text-muted-foreground">
+                Get AI-powered insights on your last meal to improve nutrition and achieve better macro balance.
               </p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+            )}
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }

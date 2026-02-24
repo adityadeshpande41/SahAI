@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
@@ -12,13 +12,11 @@ import {
   DoorOpen,
   Home,
   Check,
-  Clock,
   TrendingUp,
   AlertTriangle,
   Loader2,
 } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
-import { useRecentSymptoms, useCreateSymptom, useRecentActivities, useCreateActivity } from "@/hooks/use-api";
+import { useRecentSymptoms, useCreateSymptom, useRecentActivities, useCreateActivity, useSymptomsMotivation } from "@/hooks/use-api";
 
 const symptomQuickOptions = ["Dizziness", "Fatigue", "Headache", "Nausea", "Pain", "Shortness of breath"];
 
@@ -30,10 +28,10 @@ const activityIcons: Record<string, typeof Footprints> = {
 };
 
 export default function Symptoms() {
-  const { toast } = useToast();
   const { data: symptoms, isLoading: symptomsLoading } = useRecentSymptoms(7);
   const { data: activities, isLoading: activitiesLoading } = useRecentActivities(10);
   const createSymptom = useCreateSymptom();
+  const { data: symptomsMotivation } = useSymptomsMotivation();
   const createActivity = useCreateActivity();
   
   const [selectedSymptom, setSelectedSymptom] = useState<string | null>(null);
@@ -71,6 +69,19 @@ export default function Symptoms() {
         <h1 className="text-2xl font-bold tracking-tight text-gradient" data-testid="text-symptoms-title">Symptoms & Activity</h1>
         <p className="text-sm text-muted-foreground mt-1">Log how you're feeling and what you're doing</p>
       </div>
+
+      {symptomsMotivation?.message && (
+        <Card className="card-elevated bg-gradient-to-r from-yellow-50 to-amber-50 dark:from-yellow-950/20 dark:to-amber-950/20 border-yellow-200 dark:border-yellow-800" data-testid="card-symptoms-motivation">
+          <CardContent className="p-4">
+            <div className="flex items-start gap-3">
+              <div className="text-2xl">📝</div>
+              <div className="flex-1">
+                <p className="text-sm font-medium text-yellow-900 dark:text-yellow-100">{symptomsMotivation.message}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       <div>
         <h2 className="text-sm font-semibold mb-3 text-muted-foreground uppercase tracking-wider flex items-center gap-2"><span className="w-1 h-4 rounded-full bg-primary inline-block" />Log a Symptom</h2>
@@ -165,20 +176,6 @@ export default function Symptoms() {
           </CardContent>
         </Card>
       </div>
-
-      <Card className="card-elevated bg-gradient-to-br from-amber-50/80 to-orange-50/50 dark:from-amber-950/20 dark:to-orange-950/10 border-amber-200 dark:border-amber-800" data-testid="card-pattern-insight">
-        <CardContent className="p-4">
-          <div className="flex items-start gap-3">
-            <TrendingUp className="w-5 h-5 text-amber-600 dark:text-amber-400 mt-0.5 flex-shrink-0" />
-            <div>
-              <p className="text-sm font-medium">Pattern Detected</p>
-              <p className="text-xs text-muted-foreground mt-0.5">
-                You reported dizziness twice this week, usually in the afternoon. This may be related to delayed lunch times.
-              </p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
 
       <div>
         <h2 className="text-sm font-semibold mb-3 text-muted-foreground uppercase tracking-wider flex items-center gap-2"><span className="w-1 h-4 rounded-full bg-primary inline-block" />Recent Symptoms</h2>

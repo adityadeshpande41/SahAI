@@ -30,7 +30,7 @@ import {
   Loader2,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { 
+import {
   useTwinState, 
   useCurrentRisks, 
   useWeather, 
@@ -42,6 +42,9 @@ import {
   useTodayMedications,
   useMarkMedicationTaken,
   useCurrentUser,
+  useStreaks,
+  useMotivation,
+  useDailyQuote,
 } from "@/hooks/use-api";
 import { getGreeting, getCurrentDate } from "@/lib/mock-data";
 import { Link } from "wouter";
@@ -89,6 +92,9 @@ export default function Dashboard() {
   const { data: context } = useCurrentContext();
   const { data: adherence } = useMedicationAdherence();
   const { data: userData, isLoading: userLoading, isFetching: userFetching } = useCurrentUser();
+  const { data: streaksData } = useStreaks();
+  const { data: motivationData } = useMotivation();
+  const { data: dailyQuote } = useDailyQuote();
   
   // Debug logging
   console.log("Dashboard user data:", userData);
@@ -200,6 +206,22 @@ export default function Dashboard() {
         </div>
       </div>
 
+      {/* Daily Quote Card */}
+      {dailyQuote?.quote && (
+        <Card className="card-elevated bg-gradient-to-r from-sky-50 to-blue-50 dark:from-sky-950/20 dark:to-blue-950/20 border-sky-200 dark:border-sky-800">
+          <CardContent className="p-4">
+            <div className="flex items-start gap-3">
+              <div className="text-2xl">💡</div>
+              <div className="flex-1">
+                <p className="text-sm font-medium text-sky-900 dark:text-sky-100 leading-relaxed italic">
+                  "{dailyQuote.quote}"
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       <Card className="relative overflow-hidden border-0 card-elevated" data-testid="card-twin">
         <div className="absolute inset-0 bg-gradient-to-br from-primary/6 via-transparent to-primary/4 dark:from-primary/10 dark:via-transparent dark:to-primary/8" />
         <div className={`absolute top-0 right-0 w-40 h-40 bg-gradient-radial ${config.glow} to-transparent opacity-60 blur-2xl`} />
@@ -255,6 +277,43 @@ export default function Dashboard() {
           </div>
         )}
       </div>
+
+      {/* Streaks & Motivation Card */}
+      {(streaksData || motivationData) && (
+        <Card className="card-elevated bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-950/20 dark:to-pink-950/20 border-purple-200 dark:border-purple-800" data-testid="card-streaks">
+          <CardContent className="p-4 space-y-3">
+            {motivationData?.message && (
+              <div className="flex items-start gap-2">
+                <Heart className="w-4 h-4 text-purple-600 dark:text-purple-400 mt-0.5 flex-shrink-0" />
+                <p className="text-sm text-purple-900 dark:text-purple-100 leading-relaxed">
+                  {motivationData.message}
+                </p>
+              </div>
+            )}
+            
+            {streaksData?.streaks && (
+              <div className="grid grid-cols-3 gap-2">
+                {[
+                  { label: "Meds", value: streaksData.streaks.medication, emoji: "💊", color: "bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300" },
+                  { label: "Meals", value: streaksData.streaks.meals, emoji: "🍽️", color: "bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300" },
+                  { label: "Vitals", value: streaksData.streaks.vitals, emoji: "❤️", color: "bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300" },
+                ].map(({ label, value, emoji, color }) => (
+                  <div key={label} className={`rounded-lg p-2.5 text-center ${color}`}>
+                    <div className="text-xl mb-0.5">{emoji}</div>
+                    <div className="text-lg font-bold tabular-nums">{value}</div>
+                    <div className="text-[10px] font-medium uppercase tracking-wide">{label}</div>
+                    {value > 0 && (
+                      <div className="text-[9px] mt-0.5 opacity-75">
+                        {value === 1 ? "day" : "days"} 🔥
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       <div>
         <h3 className="text-xs font-semibold mb-3 text-muted-foreground uppercase tracking-wider flex items-center gap-2">

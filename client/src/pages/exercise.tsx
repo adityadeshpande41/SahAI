@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import {
   Activity,
   Plus,
@@ -19,9 +20,12 @@ import {
   Bike,
   Waves,
   Target,
+  Pencil,
+  Sparkles,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { useTodayActivities, useCreateActivity } from "@/hooks/use-api";
+import { useTodayActivities, useCreateActivity, useExerciseMotivation } from "@/hooks/use-api";
+import * as api from "@/lib/api-client";
 
 const exerciseTypes = [
   { name: "Walking", icon: Footprints, color: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300", caloriesPerMin: 4 },
@@ -36,11 +40,19 @@ export default function Exercise() {
   const { toast } = useToast();
   const { data: activities, isLoading } = useTodayActivities();
   const createActivity = useCreateActivity();
+  const { data: exerciseMotivation } = useExerciseMotivation();
 
   const [selectedExercise, setSelectedExercise] = useState("");
   const [duration, setDuration] = useState("");
   const [notes, setNotes] = useState("");
   const [showForm, setShowForm] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
+  const [customExercises, setCustomExercises] = useState(exerciseTypes);
+  const [weeklyGoal, setWeeklyGoal] = useState(150);
+  const [showGoalEdit, setShowGoalEdit] = useState(false);
+  const [activityMotivation, setActivityMotivation] = useState<string | null>(null);
+  const [aiInsights, setAiInsights] = useState<any>(null);
+  const [loadingInsights, setLoadingInsights] = useState(false);
 
   const todayActivities = activities?.activities || [];
   const totalDuration = todayActivities.reduce((sum: number, a: any) => sum + (a.duration || 0), 0);
@@ -52,6 +64,22 @@ export default function Exercise() {
   const handleQuickLog = async (exerciseName: string) => {
     setSelectedExercise(exerciseName);
     setShowForm(true);
+  };
+
+  const learnWithAI = async (activity: string, duration?: number) => {
+    setLoadingInsights(true);
+    try {
+      const insights = await api.getActivityAIInsights({ activity, duration });
+      setAiInsights(insights);
+    } catch (error: any) {
+      toast({
+        title: "AI Insights failed",
+        description: error.message || "Failed to get AI insights",
+        variant: "destructive",
+      });
+    } finally {
+      setLoadingInsights(false);
+    }
   };
 
   const handleSubmit = async () => {
@@ -70,6 +98,25 @@ export default function Exercise() {
       duration: durationNum,
       loggedAt: new Date(),
     });
+
+    // Fetch AI motivation for this activity
+    try {
+      const response = await fetch("/api/motivation/activity", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          activityType: selectedExercise,
+          duration: durationNum,
+        }),
+      });
+      const data = await response.json();
+      if (data.message) {
+        setActivityMotivation(data.message);
+        setTimeout(() => setActivityMotivation(null), 15000); // Clear after 15 seconds
+      }
+    } catch (error) {
+      console.error("Failed to fetch activity motivation:", error);
+    }
 
     setSelectedExercise("");
     setDuration("");
@@ -90,6 +137,38 @@ export default function Exercise() {
         </h1>
         <p className="text-sm text-muted-foreground mt-1">Track your physical activities</p>
       </div>
+
+      {/* Exercise Motivation Card */}
+      {exerciseMotivation?.message && (
+        <Card className="card-elevated bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-950/20 dark:to-emerald-950/20 border-green-200 dark:border-green-800">
+          <CardContent className="p-4">
+            <div className="flex items-start gap-3">
+              <div className="text-2xl">{exerciseMotivation.hasExercisedToday ? "🎉" : "💪"}</div>
+              <div className="flex-1">
+                <p className="text-sm font-medium text-green-900 dark:text-green-100 leading-relaxed">
+                  {exerciseMotivation.message}
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Activity-Specific Motivation (after logging) */}
+      {activityMotivation && (
+        <Card className="card-elevated bg-gradient-to-r from-blue-50 to-cyan-50 dark:from-blue-950/20 dark:to-cyan-950/20 border-blue-200 dark:border-blue-800 animate-slide-up">
+          <CardContent className="p-4">
+            <div className="flex items-start gap-3">
+              <div className="text-2xl">⭐</div>
+              <div className="flex-1">
+                <p className="text-sm font-medium text-blue-900 dark:text-blue-100 leading-relaxed">
+                  {activityMotivation}
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Today's Summary */}
       <Card className="card-elevated bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-emerald-950/20 dark:to-teal-950/20 border-emerald-200 dark:border-emerald-800">
@@ -120,36 +199,132 @@ export default function Exercise() {
       {/* Weekly Goal */}
       <Card className="card-elevated">
         <CardHeader className="pb-2">
-          <div className="flex items-center gap-2">
-            <Target className="w-4 h-4 text-primary" />
-            <CardTitle className="text-sm font-semibold">Weekly Goal</CardTitle>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Target className="w-4 h-4 text-primary" />
+              <CardTitle className="text-sm font-semibold">Weekly Goal</CardTitle>
+            </div>
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              className="h-8 w-8 p-0"
+              onClick={() => setShowGoalEdit(!showGoalEdit)}
+            >
+              <Pencil className="w-4 h-4" />
+            </Button>
           </div>
         </CardHeader>
         <CardContent className="space-y-3">
-          <div className="flex items-center justify-between text-sm">
-            <span className="text-muted-foreground">150 minutes per week</span>
-            <span className="font-bold text-primary">{totalDuration} / 150 min</span>
-          </div>
-          <div className="relative h-3 rounded-full bg-muted overflow-hidden">
-            <div
-              className="absolute inset-y-0 left-0 rounded-full bg-gradient-to-r from-emerald-500 to-emerald-600 transition-all duration-500"
-              style={{ width: `${Math.min((totalDuration / 150) * 100, 100)}%` }}
-            />
-          </div>
-          <p className="text-xs text-muted-foreground">
-            WHO recommends 150 minutes of moderate activity per week
-          </p>
+          {showGoalEdit ? (
+            <div className="space-y-3 p-3 rounded-lg border bg-muted/50">
+              <div className="space-y-2">
+                <Label className="text-xs">Weekly Goal (minutes)</Label>
+                <Input
+                  type="number"
+                  value={weeklyGoal}
+                  onChange={(e) => setWeeklyGoal(parseInt(e.target.value) || 150)}
+                  min="30"
+                  max="1000"
+                  className="h-9"
+                />
+                <p className="text-xs text-muted-foreground">
+                  WHO recommends 150 minutes per week
+                </p>
+              </div>
+              <Button 
+                size="sm" 
+                onClick={() => {
+                  setShowGoalEdit(false);
+                  toast({
+                    title: "Goal updated",
+                    description: `Your weekly goal is now ${weeklyGoal} minutes`,
+                  });
+                }}
+                className="w-full"
+              >
+                Save Goal
+              </Button>
+            </div>
+          ) : (
+            <>
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-muted-foreground">{weeklyGoal} minutes per week</span>
+                <span className="font-bold text-primary">{totalDuration} / {weeklyGoal} min</span>
+              </div>
+              <div className="relative h-3 rounded-full bg-muted overflow-hidden">
+                <div
+                  className="absolute inset-y-0 left-0 rounded-full bg-gradient-to-r from-emerald-500 to-emerald-600 transition-all duration-500"
+                  style={{ width: `${Math.min((totalDuration / weeklyGoal) * 100, 100)}%` }}
+                />
+              </div>
+              <p className="text-xs text-muted-foreground">
+                {totalDuration >= weeklyGoal 
+                  ? "🎉 Weekly goal achieved!" 
+                  : `${weeklyGoal - totalDuration} minutes to reach your goal`}
+              </p>
+            </>
+          )}
         </CardContent>
       </Card>
 
       {/* Quick Log Exercises */}
       <Card className="card-elevated">
         <CardHeader className="pb-2">
-          <CardTitle className="text-sm font-semibold">Quick Log</CardTitle>
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-sm font-semibold">Quick Log</CardTitle>
+            <Dialog open={showSettings} onOpenChange={setShowSettings}>
+              <DialogTrigger asChild>
+                <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                  <Pencil className="w-4 h-4" />
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-md">
+                <DialogHeader>
+                  <DialogTitle>Customize Quick Log</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-4 mt-4">
+                  {customExercises.map((exercise, idx) => (
+                    <div key={idx} className="space-y-2 p-3 rounded-lg border">
+                      <div className="grid grid-cols-2 gap-2">
+                        <div className="space-y-1">
+                          <Label className="text-xs">Exercise Name</Label>
+                          <Input
+                            value={exercise.name}
+                            onChange={(e) => {
+                              const updated = [...customExercises];
+                              updated[idx] = { ...updated[idx], name: e.target.value };
+                              setCustomExercises(updated);
+                            }}
+                            className="h-8"
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-xs">Calories/min</Label>
+                          <Input
+                            type="number"
+                            value={exercise.caloriesPerMin}
+                            onChange={(e) => {
+                              const updated = [...customExercises];
+                              updated[idx] = { ...updated[idx], caloriesPerMin: parseInt(e.target.value) || 0 };
+                              setCustomExercises(updated);
+                            }}
+                            className="h-8"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                  <Button onClick={() => setShowSettings(false)} className="w-full">
+                    Save Changes
+                  </Button>
+                </div>
+              </DialogContent>
+            </Dialog>
+          </div>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-2 gap-3">
-            {exerciseTypes.map((exercise) => {
+            {customExercises.map((exercise) => {
               const Icon = exercise.icon;
               return (
                 <Button
@@ -186,7 +361,7 @@ export default function Exercise() {
                   <SelectValue placeholder="Select exercise" />
                 </SelectTrigger>
                 <SelectContent>
-                  {exerciseTypes.map((exercise) => (
+                  {customExercises.map((exercise) => (
                     <SelectItem key={exercise.name} value={exercise.name}>
                       {exercise.name}
                     </SelectItem>
@@ -213,7 +388,7 @@ export default function Exercise() {
                   <span className="font-bold text-orange-600 dark:text-orange-400">
                     ~{Math.round(
                       parseInt(duration) *
-                        (exerciseTypes.find((e) => e.name === selectedExercise)?.caloriesPerMin || 5)
+                        (customExercises.find((e) => e.name === selectedExercise)?.caloriesPerMin || 5)
                     )}{" "}
                     cal
                   </span>
@@ -313,6 +488,68 @@ export default function Exercise() {
           </div>
         )}
       </div>
+
+      {/* Learn with AI Card */}
+      {todayActivities.length > 0 && (
+        <Card className="card-elevated bg-gradient-to-r from-purple-50 to-indigo-50 dark:from-purple-950/20 dark:to-indigo-950/20 border-purple-200 dark:border-purple-800" data-testid="card-learn-ai-exercise">
+          <CardContent className="p-4 space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Sparkles className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+                <h3 className="font-semibold text-sm">Learn with AI</h3>
+              </div>
+              <Button
+                size="sm"
+                variant="secondary"
+                onClick={() => {
+                  const lastActivity = todayActivities[0];
+                  learnWithAI(lastActivity.activity, lastActivity.duration);
+                }}
+                disabled={loadingInsights}
+                data-testid="button-learn-ai-exercise"
+              >
+                {loadingInsights ? (
+                  <><Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" /> Analyzing...</>
+                ) : (
+                  <><Sparkles className="w-3.5 h-3.5 mr-1" /> Get Insights</>
+                )}
+              </Button>
+            </div>
+            
+            {aiInsights && (
+              <div className="space-y-3 animate-slide-up">
+                <div className="rounded-md bg-white/60 dark:bg-black/20 p-3 space-y-2">
+                  <div>
+                    <p className="text-xs font-semibold text-purple-700 dark:text-purple-300 uppercase tracking-wide">Benefits</p>
+                    <p className="text-sm mt-1">{aiInsights.insights}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs font-semibold text-purple-700 dark:text-purple-300 uppercase tracking-wide">Tips for You</p>
+                    <ul className="space-y-1 mt-1">
+                      {aiInsights.tips.map((tip: string, idx: number) => (
+                        <li key={idx} className="text-sm flex items-start gap-2">
+                          <Check className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400 mt-0.5 flex-shrink-0" />
+                          <span>{tip}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                  <div>
+                    <p className="text-xs font-semibold text-purple-700 dark:text-purple-300 uppercase tracking-wide">Try Next</p>
+                    <p className="text-sm mt-1">{aiInsights.complementary}</p>
+                  </div>
+                </div>
+              </div>
+            )}
+            
+            {!aiInsights && !loadingInsights && (
+              <p className="text-xs text-muted-foreground">
+                Get AI-powered insights on your last activity to optimize your exercise routine and stay safe.
+              </p>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       {/* Health Tip */}
       <Card className="card-elevated bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-950/20 dark:to-indigo-950/20 border-blue-200 dark:border-blue-800">

@@ -331,4 +331,37 @@ Only flag clinically significant interactions. Be conservative but not alarmist.
       data: extracted,
     };
   }
+
+  async getMedicationInsights(
+    medicationName: string,
+    context: AgentContext
+  ): Promise<{ insights: string; tips: string[]; timing: string }> {
+    const systemPrompt = `You are a medication expert helping elderly users understand their medications better. Provide clear, simple insights about:
+1. What the medication does
+2. Best practices for taking it
+3. Simple tips to remember and optimize effectiveness
+
+Be encouraging and use simple language.`;
+
+    const userPrompt = `Medication: ${medicationName}
+
+Provide helpful insights in JSON format:
+{
+  "insights": "2-3 sentences explaining what this medication does and why it's important",
+  "tips": ["tip 1", "tip 2", "tip 3"],
+  "timing": "best time of day to take this medication and why"
+}
+
+Keep it simple and practical for elderly users.`;
+
+    const response = await this.callOpenAI([
+      { role: "system", content: systemPrompt },
+      { role: "user", content: userPrompt },
+    ], {
+      temperature: 0.7,
+      response_format: { type: "json_object" },
+    });
+
+    return JSON.parse(response.choices[0].message.content);
+  }
 }

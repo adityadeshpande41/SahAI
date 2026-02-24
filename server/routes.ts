@@ -167,6 +167,7 @@ export async function registerRoutes(
         name: user.name,
         ageGroup: user.ageGroup,
         language: user.language,
+        location: user.location,
       });
     } catch (error: any) {
       console.error("Get user error:", error);
@@ -643,6 +644,27 @@ export async function registerRoutes(
     }
   });
 
+  app.post("/api/medications/ai-insights", async (req, res) => {
+    try {
+      const user = await getCurrentUser(req);
+      if (!user) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      const { medicationName } = req.body;
+      
+      const insights = await medicationAgent.getMedicationInsights(
+        medicationName,
+        { user, currentTime: new Date() }
+      );
+      
+      res.json(insights);
+    } catch (error: any) {
+      console.error("Medication AI insights error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   app.post("/api/medications/extract-prescription", async (req, res) => {
     try {
       const user = await getCurrentUser(req);
@@ -738,6 +760,67 @@ export async function registerRoutes(
       res.json({ meals });
     } catch (error: any) {
       console.error("Today meals error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.delete("/api/meals/:mealId", async (req, res) => {
+    try {
+      const user = await getCurrentUser(req);
+      if (!user) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      const { mealId } = req.params;
+      await storage.deleteMealLog(parseInt(mealId), user.id);
+      res.json({ success: true });
+    } catch (error: any) {
+      console.error("Delete meal error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.patch("/api/meals/:mealId", async (req, res) => {
+    try {
+      const user = await getCurrentUser(req);
+      if (!user) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      const { mealId } = req.params;
+      const { foods, estimatedCalories } = req.body;
+      
+      const meal = await storage.updateMealLog(parseInt(mealId), user.id, {
+        foods,
+        estimatedCalories,
+      });
+      
+      res.json({ meal });
+    } catch (error: any) {
+      console.error("Update meal error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/meals/ai-insights", async (req, res) => {
+    try {
+      const user = await getCurrentUser(req);
+      if (!user) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      const { foods, mealType, estimatedCalories } = req.body;
+      const { NutritionAgent } = await import("./agents/nutrition-agent");
+      const nutritionAgent = new NutritionAgent();
+      
+      const insights = await nutritionAgent.getMealImprovementSuggestions(
+        { foods, mealType, estimatedCalories },
+        { user, currentTime: new Date() }
+      );
+      
+      res.json(insights);
+    } catch (error: any) {
+      console.error("Meal AI insights error:", error);
       res.status(500).json({ error: error.message });
     }
   });
@@ -854,6 +937,52 @@ export async function registerRoutes(
     }
   });
 
+  app.post("/api/activities/ai-insights", async (req, res) => {
+    try {
+      const user = await getCurrentUser(req);
+      if (!user) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      const { activity, duration } = req.body;
+      
+      // Generate exercise insights using OpenAI
+      const OpenAI = (await import("openai")).default;
+      const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+      
+      const response = await openai.chat.completions.create({
+        model: "gpt-4o-mini",
+        messages: [
+          {
+            role: "system",
+            content: "You are a fitness expert helping elderly users optimize their exercise routine. Provide clear, safe, and practical advice.",
+          },
+          {
+            role: "user",
+            content: `Activity: ${activity}${duration ? `, Duration: ${duration} minutes` : ''}
+
+Provide helpful insights in JSON format:
+{
+  "insights": "2-3 sentences about the benefits of this activity",
+  "tips": ["safety tip 1", "effectiveness tip 2", "progression tip 3"],
+  "complementary": "suggestion for a complementary activity to balance the workout"
+}
+
+Keep it simple and safe for elderly users.`,
+          },
+        ],
+        temperature: 0.7,
+        response_format: { type: "json_object" },
+      });
+      
+      const insights = JSON.parse(response.choices[0].message.content || "{}");
+      res.json(insights);
+    } catch (error: any) {
+      console.error("Activity AI insights error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   // ============================================
   // USER API
   // ============================================
@@ -875,7 +1004,11 @@ export async function registerRoutes(
         return res.status(401).json({ error: "Unauthorized" });
       }
 
-      console.log("GET /api/users/me - Returning user:", { userId: user.id, name: user.name });
+      console.log("GET /api/users/me - Returning user:", { 
+        userId: user.id, 
+        name: user.name, 
+        location: user.location || 'NO LOCATION' 
+      });
 
       // Disable caching to ensure fresh data
       res.set({
@@ -1001,9 +1134,231 @@ export async function registerRoutes(
     }
   });
 
+  app.get("/api/health-data/export", async (req, res) => {
+    try {
+      const user = await getCurrentUser(req);
+      if (!user) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      const days = parseInt(req.query.days as string) || 30;
+      const startDate = new Date();
+      startDate.setDate(startDate.getDate() - days);
+
+      // Fetch all health data
+      const [medications, todayMeds, meals, vitals, symptoms, activities] = await Promise.all([
+        storage.getUserMedications(user.id),
+        storage.getTodayMedications(user.id),
+        storage.getHistoricalMeals(user.id, days),
+        storage.getTodayVitals(user.id),
+        storage.getRecentSymptoms(user.id, days),
+        storage.getHistoricalActivities(user.id, days),
+      ]);
+
+      const exportData = {
+        patient: {
+          name: user.name,
+          ageGroup: user.ageGroup,
+          exportDate: new Date().toISOString(),
+          dataRange: {
+            from: startDate.toISOString(),
+            to: new Date().toISOString(),
+            days,
+          },
+        },
+        medications: {
+          active: medications || [],
+          todaySchedule: todayMeds || [],
+        },
+        meals: meals || [],
+        vitals: vitals || [],
+        symptoms: symptoms || [],
+        activities: activities || [],
+        summary: {
+          totalActiveMedications: medications?.length || 0,
+          totalMeals: meals?.length || 0,
+          totalVitals: vitals?.length || 0,
+          totalSymptoms: symptoms?.length || 0,
+          totalActivities: activities?.length || 0,
+        },
+      };
+
+      res.json(exportData);
+    } catch (error: any) {
+      console.error("Health data export error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   // ============================================
   // LEARNING & INSIGHTS API
   // ============================================
+  
+  app.get("/api/streaks", async (req, res) => {
+    try {
+      const user = await getCurrentUser(req);
+      if (!user) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      const streaks = await storage.getUserStreaks(user.id);
+      res.json({ streaks });
+    } catch (error: any) {
+      console.error("Get streaks error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/motivation", async (req, res) => {
+    try {
+      const user = await getCurrentUser(req);
+      if (!user) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      const { generateMotivationalMessage } = await import("./agents/motivator-agent");
+      const streaks = await storage.getUserStreaks(user.id);
+
+      console.log("Generating motivation for user:", user.name, "streaks:", streaks);
+
+      const message = await generateMotivationalMessage({
+        userName: user.name || "there",
+        streaks,
+        twinScore: 0, // Default to 0 since getTwinState doesn't exist yet
+      });
+
+      console.log("Motivation message generated:", message);
+
+      res.json({ message, streaks });
+    } catch (error: any) {
+      console.error("Get motivation error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/motivation/daily-quote", async (req, res) => {
+    try {
+      const { generateDailyQuote } = await import("./agents/motivator-agent");
+      const quote = await generateDailyQuote();
+      console.log("Daily quote generated:", quote);
+      res.json({ quote });
+    } catch (error: any) {
+      console.error("Get daily quote error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/motivation/meal", async (req, res) => {
+    try {
+      const user = await getCurrentUser(req);
+      if (!user) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      const { foodItems, calories } = req.body;
+      const { generateMealMotivation } = await import("./agents/motivator-agent");
+      
+      const message = await generateMealMotivation(foodItems, calories || 0);
+      res.json({ message });
+    } catch (error: any) {
+      console.error("Get meal motivation error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/motivation/exercise", async (req, res) => {
+    try {
+      const user = await getCurrentUser(req);
+      if (!user) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      const { generateExerciseMotivation } = await import("./agents/motivator-agent");
+      
+      // Check if user has exercised today
+      const activities = await storage.getTodayActivities(user.id);
+      const hasExercisedToday = activities.length > 0;
+      
+      const message = await generateExerciseMotivation(hasExercisedToday);
+      res.json({ message, hasExercisedToday });
+    } catch (error: any) {
+      console.error("Get exercise motivation error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/motivation/activity", async (req, res) => {
+    try {
+      const user = await getCurrentUser(req);
+      if (!user) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      const { activityType, duration } = req.body;
+      const { generateActivityMotivation } = await import("./agents/motivator-agent");
+      
+      const message = await generateActivityMotivation(activityType, duration || 0);
+      res.json({ message });
+    } catch (error: any) {
+      console.error("Get activity motivation error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/motivation/medication", async (req, res) => {
+    try {
+      const user = await getCurrentUser(req);
+      if (!user) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      const { medicationName } = req.body;
+      const { generateMedicationMotivation } = await import("./agents/motivator-agent");
+      
+      // Calculate adherence rate from medication streak (simple approximation)
+      const streaks = await storage.getUserStreaks(user.id);
+      const adherenceRate = Math.min(100, (streaks.medication / 7) * 100); // Assume 7 days is 100%
+      
+      const message = await generateMedicationMotivation(medicationName, adherenceRate);
+      res.json({ message });
+    } catch (error: any) {
+      console.error("Get medication motivation error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/motivation/vitals", async (req, res) => {
+    try {
+      const { getVitalsMotivation } = await import("./agents/motivator-agent");
+      const message = getVitalsMotivation();
+      res.json({ message });
+    } catch (error: any) {
+      console.error("Get vitals motivation error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/motivation/symptoms", async (req, res) => {
+    try {
+      const { getSymptomsMotivation } = await import("./agents/motivator-agent");
+      const message = getSymptomsMotivation();
+      res.json({ message });
+    } catch (error: any) {
+      console.error("Get symptoms motivation error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/motivation/medications", async (req, res) => {
+    try {
+      const { getMedicationsMotivation } = await import("./agents/motivator-agent");
+      const message = getMedicationsMotivation();
+      res.json({ message });
+    } catch (error: any) {
+      console.error("Get medications motivation error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
   
   app.get("/api/insights/preferences", async (req, res) => {
     try {
@@ -1272,6 +1627,58 @@ export async function registerRoutes(
   });
 
   // ============================================
+  // HEALTH VITALS API
+  // ============================================
+  
+  app.post("/api/vitals", async (req, res) => {
+    try {
+      const user = await getCurrentUser(req);
+      if (!user) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      const vital = await storage.createHealthVital(user.id, req.body);
+      res.json({ vital });
+    } catch (error: any) {
+      console.error("Create vital error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/vitals/today", async (req, res) => {
+    try {
+      const user = await getCurrentUser(req);
+      if (!user) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      const vitalType = req.query.type as string | undefined;
+      const vitals = await storage.getTodayVitals(user.id, vitalType);
+      res.json({ vitals });
+    } catch (error: any) {
+      console.error("Today vitals error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/vitals/recent", async (req, res) => {
+    try {
+      const user = await getCurrentUser(req);
+      if (!user) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      const vitalType = req.query.type as string || "blood_sugar";
+      const count = parseInt(req.query.count as string) || 10;
+      const vitals = await storage.getRecentVitals(user.id, vitalType, count);
+      res.json({ vitals });
+    } catch (error: any) {
+      console.error("Recent vitals error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // ============================================
   // CONTEXT API
   // ============================================
   
@@ -1306,7 +1713,10 @@ export async function registerRoutes(
         return res.status(401).json({ error: "Unauthorized" });
       }
 
-      const location = req.query.location as string;
+      // Priority: 1. Query parameter, 2. User's saved location, 3. Default (Delhi)
+      const location = (req.query.location as string) || user.location || undefined;
+      
+      console.log("Weather request - User:", user.name, "Location:", location || "default");
       
       const contextAgent = new (await import("./agents/context-agent")).ContextAgent();
       const result = await contextAgent.execute(

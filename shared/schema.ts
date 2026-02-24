@@ -119,6 +119,30 @@ export const activityLogs = pgTable("activity_logs", {
   timeIdx: index("activity_logs_time_idx").on(table.loggedAt),
 }));
 
+// Health Vitals (Blood Sugar, Blood Pressure, etc.)
+export const healthVitals = pgTable("health_vitals", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  vitalType: text("vital_type").notNull(), // blood_sugar, blood_pressure, weight, heart_rate
+  // Blood Sugar fields
+  bloodSugar: real("blood_sugar"), // mg/dL
+  measurementType: text("measurement_type"), // fasting, post_meal, random
+  // Blood Pressure fields
+  systolic: integer("systolic"), // mmHg
+  diastolic: integer("diastolic"), // mmHg
+  // Other vitals
+  weight: real("weight"), // kg
+  heartRate: integer("heart_rate"), // bpm
+  // Common fields
+  notes: text("notes"),
+  loggedAt: timestamp("logged_at").defaultNow().notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => ({
+  userIdx: index("health_vitals_user_idx").on(table.userId),
+  typeIdx: index("health_vitals_type_idx").on(table.vitalType),
+  loggedAtIdx: index("health_vitals_logged_at_idx").on(table.loggedAt),
+}));
+
 // Context Snapshots
 export const contextSnapshots = pgTable("context_snapshots", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -263,6 +287,7 @@ export const insertUserSchema = createInsertSchema(users).pick({
   name: true,
   ageGroup: true,
   language: true,
+  location: true,
 });
 
 export const insertUserPreferencesSchema = createInsertSchema(userPreferences).omit({ id: true, updatedAt: true });
@@ -307,3 +332,6 @@ export const pushSubscriptions = pgTable("push_subscriptions", {
 }));
 
 export type PushSubscription = typeof pushSubscriptions.$inferSelect;
+
+export type HealthVital = typeof healthVitals.$inferSelect;
+export type InsertHealthVital = typeof healthVitals.$inferInsert;

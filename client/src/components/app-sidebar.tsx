@@ -32,6 +32,7 @@ const navItems = [
   { title: "Medications", url: "/medications", icon: Pill },
   { title: "Meals", url: "/meals", icon: UtensilsCrossed },
   { title: "Exercise", url: "/exercise", icon: Dumbbell },
+  { title: "Vitals", url: "/vitals", icon: Heart },
   { title: "Symptoms", url: "/symptoms", icon: Activity },
   { title: "Talk to SahAI", url: "/voice", icon: MessageCircle },
   { title: "Insights", url: "/insights", icon: BarChart3 },

@@ -203,9 +203,25 @@ export default function Register() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="English">English</SelectItem>
-                  <SelectItem value="Hindi">Hindi</SelectItem>
-                  <SelectItem value="Spanish">Spanish</SelectItem>
-                  <SelectItem value="Mandarin">Mandarin</SelectItem>
+                  <SelectItem value="Spanish">Spanish (Español)</SelectItem>
+                  <SelectItem value="French">French (Français)</SelectItem>
+                  <SelectItem value="German">German (Deutsch)</SelectItem>
+                  <SelectItem value="Italian">Italian (Italiano)</SelectItem>
+                  <SelectItem value="Portuguese">Portuguese (Português)</SelectItem>
+                  <SelectItem value="Russian">Russian (Русский)</SelectItem>
+                  <SelectItem value="Mandarin">Mandarin (中文)</SelectItem>
+                  <SelectItem value="Japanese">Japanese (日本語)</SelectItem>
+                  <SelectItem value="Korean">Korean (한국어)</SelectItem>
+                  <SelectItem value="Arabic">Arabic (العربية)</SelectItem>
+                  <SelectItem value="Hindi">Hindi (हिन्दी)</SelectItem>
+                  <SelectItem value="Bengali">Bengali (বাংলা)</SelectItem>
+                  <SelectItem value="Tamil">Tamil (தமிழ்)</SelectItem>
+                  <SelectItem value="Telugu">Telugu (తెలుగు)</SelectItem>
+                  <SelectItem value="Marathi">Marathi (मराठी)</SelectItem>
+                  <SelectItem value="Gujarati">Gujarati (ગુજરાતી)</SelectItem>
+                  <SelectItem value="Kannada">Kannada (ಕನ್ನಡ)</SelectItem>
+                  <SelectItem value="Malayalam">Malayalam (മലയാളം)</SelectItem>
+                  <SelectItem value="Punjabi">Punjabi (ਪੰਜਾਬੀ)</SelectItem>
                 </SelectContent>
               </Select>
             </div>

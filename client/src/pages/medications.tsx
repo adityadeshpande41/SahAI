@@ -19,15 +19,18 @@ import {
   MessageSquare,
   HelpCircle,
   Loader2,
+  Sparkles,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { useTodayMedications, useMarkMedicationTaken, useSnoozeMedication, useUploadPrescription, useMedicationAdherence } from "@/hooks/use-api";
+import { useTodayMedications, useMarkMedicationTaken, useSnoozeMedication, useUploadPrescription, useMedicationAdherence, useMedicationsMotivation } from "@/hooks/use-api";
+import * as api from "@/lib/api-client";
 
 export default function Medications() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { data: meds, isLoading: medsLoading } = useTodayMedications();
   const { data: adherenceData } = useMedicationAdherence();
+  const { data: medicationsMotivation } = useMedicationsMotivation();
   const markTaken = useMarkMedicationTaken();
   const snoozeMed = useSnoozeMedication();
   const uploadPrescription = useUploadPrescription();
@@ -35,6 +38,9 @@ export default function Medications() {
   const [showUpload, setShowUpload] = useState(false);
   const [uploadFile, setUploadFile] = useState<File | null>(null);
   const [extractedData, setExtractedData] = useState<any>(null);
+  const [medicationMotivation, setMedicationMotivation] = useState<string | null>(null);
+  const [aiInsights, setAiInsights] = useState<any>(null);
+  const [loadingInsights, setLoadingInsights] = useState(false);
 
   const takenCount = meds?.schedule?.filter((m: any) => m.takenAt).length || 0;
   const totalCount = meds?.schedule?.length || 1;
@@ -42,7 +48,28 @@ export default function Medications() {
 
   const handleAction = async (id: string, action: "taken" | "snoozed" | "missed") => {
     if (action === "taken") {
+      const medication = meds?.schedule?.find((m: any) => m.id === id);
       await markTaken.mutateAsync({ medicationId: id });
+      
+      // Fetch AI motivation for taking medication
+      if (medication) {
+        try {
+          const response = await fetch("/api/motivation/medication", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              medicationName: medication.name,
+            }),
+          });
+          const data = await response.json();
+          if (data.message) {
+            setMedicationMotivation(data.message);
+            setTimeout(() => setMedicationMotivation(null), 15000); // Clear after 15 seconds
+          }
+        } catch (error) {
+          console.error("Failed to fetch medication motivation:", error);
+        }
+      }
     } else if (action === "snoozed") {
       await snoozeMed.mutateAsync({ medicationId: id, snoozeMinutes: 30 });
     }
@@ -62,6 +89,22 @@ export default function Medications() {
     }
   };
 
+  const learnWithAI = async (medicationName: string) => {
+    setLoadingInsights(true);
+    try {
+      const insights = await api.getMedicationAIInsights(medicationName);
+      setAiInsights(insights);
+    } catch (error: any) {
+      toast({
+        title: "AI Insights failed",
+        description: error.message || "Failed to get AI insights",
+        variant: "destructive",
+      });
+    } finally {
+      setLoadingInsights(false);
+    }
+  };
+
   if (medsLoading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -76,6 +119,36 @@ export default function Medications() {
         <h1 className="text-2xl font-bold tracking-tight text-gradient" data-testid="text-medications-title">Medications</h1>
         <p className="text-sm text-muted-foreground mt-1">Track and manage your daily medications</p>
       </div>
+
+      {/* General Medications Motivation Card - Always visible */}
+      {medicationsMotivation?.message && (
+        <Card className="card-elevated bg-gradient-to-r from-indigo-50 to-purple-50 dark:from-indigo-950/20 dark:to-purple-950/20 border-indigo-200 dark:border-indigo-800" data-testid="card-medications-motivation">
+          <CardContent className="p-4">
+            <div className="flex items-start gap-3">
+              <div className="text-2xl">💊</div>
+              <div className="flex-1">
+                <p className="text-sm font-medium text-indigo-900 dark:text-indigo-100">{medicationsMotivation.message}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Medication Motivation Card - Shows after taking medication */}
+      {medicationMotivation && (
+        <Card className="card-elevated bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-950/20 dark:to-pink-950/20 border-purple-200 dark:border-purple-800 animate-slide-up">
+          <CardContent className="p-4">
+            <div className="flex items-start gap-3">
+              <div className="text-2xl">💊</div>
+              <div className="flex-1">
+                <p className="text-sm font-medium text-purple-900 dark:text-purple-100 leading-relaxed">
+                  {medicationMotivation}
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       <Card className="card-elevated" data-testid="card-adherence">
         <CardContent className="p-4">
@@ -258,6 +331,69 @@ export default function Medications() {
           </Card>
         )}
       </div>
+
+      {/* Learn with AI Card */}
+      {meds && meds.schedule && meds.schedule.length > 0 && (
+        <Card className="card-elevated bg-gradient-to-r from-purple-50 to-indigo-50 dark:from-purple-950/20 dark:to-indigo-950/20 border-purple-200 dark:border-purple-800" data-testid="card-learn-ai-medication">
+          <CardContent className="p-4 space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Sparkles className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+                <h3 className="font-semibold text-sm">Learn with AI</h3>
+              </div>
+              <Button
+                size="sm"
+                variant="secondary"
+                onClick={() => {
+                  const firstMed = meds.schedule[0];
+                  learnWithAI(firstMed.name);
+                }}
+                disabled={loadingInsights}
+                data-testid="button-learn-ai-medication"
+              >
+                {loadingInsights ? (
+                  <><Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" /> Analyzing...</>
+                ) : (
+                  <><Sparkles className="w-3.5 h-3.5 mr-1" /> Get Insights</>
+                )}
+              </Button>
+            </div>
+            
+            {aiInsights && (
+              <div className="space-y-3 animate-slide-up">
+                <div className="rounded-md bg-white/60 dark:bg-black/20 p-3 space-y-2">
+                  <div>
+                    <p className="text-xs font-semibold text-purple-700 dark:text-purple-300 uppercase tracking-wide">What It Does</p>
+                    <p className="text-sm mt-1">{aiInsights.insights}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs font-semibold text-purple-700 dark:text-purple-300 uppercase tracking-wide">Best Practices</p>
+                    <ul className="space-y-1 mt-1">
+                      {aiInsights.tips.map((tip: string, idx: number) => (
+                        <li key={idx} className="text-sm flex items-start gap-2">
+                          <Check className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400 mt-0.5 flex-shrink-0" />
+                          <span>{tip}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                  <div>
+                    <p className="text-xs font-semibold text-purple-700 dark:text-purple-300 uppercase tracking-wide">Best Time to Take</p>
+                    <p className="text-sm mt-1">{aiInsights.timing}</p>
+                  </div>
+                </div>
+              </div>
+            )}
+            
+            {!aiInsights && !loadingInsights && (
+              <p className="text-xs text-muted-foreground">
+                Get AI-powered insights about your medication to understand how it works and when to take it for best results.
+              </p>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
       <Card data-testid="card-med-explanation">
         <CardHeader className="pb-2">
           <div className="flex items-center gap-2">

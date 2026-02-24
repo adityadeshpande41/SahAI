@@ -15,6 +15,62 @@ export function useTwinState() {
   });
 }
 
+export function useStreaks() {
+  return useQuery({
+    queryKey: ["streaks"],
+    queryFn: api.getStreaks,
+    refetchInterval: 300000, // Refresh every 5 minutes
+  });
+}
+
+export function useMotivation() {
+  return useQuery({
+    queryKey: ["motivation"],
+    queryFn: api.getMotivation,
+    refetchInterval: 3600000, // Refresh every hour
+  });
+}
+
+export function useDailyQuote() {
+  return useQuery({
+    queryKey: ["daily-quote"],
+    queryFn: api.getDailyQuote,
+    staleTime: 86400000, // 24 hours - quote changes daily
+  });
+}
+
+export function useExerciseMotivation() {
+  return useQuery({
+    queryKey: ["exercise-motivation"],
+    queryFn: api.getExerciseMotivation,
+    refetchInterval: 300000, // Refresh every 5 minutes
+  });
+}
+
+export function useVitalsMotivation() {
+  return useQuery({
+    queryKey: ["vitals-motivation"],
+    queryFn: api.getVitalsMotivation,
+    staleTime: 300000, // 5 minutes
+  });
+}
+
+export function useSymptomsMotivation() {
+  return useQuery({
+    queryKey: ["symptoms-motivation"],
+    queryFn: api.getSymptomsMotivation,
+    staleTime: 300000, // 5 minutes
+  });
+}
+
+export function useMedicationsMotivation() {
+  return useQuery({
+    queryKey: ["medications-motivation"],
+    queryFn: api.getMedicationsMotivation,
+    staleTime: 300000, // 5 minutes
+  });
+}
+
 // ============================================
 // MEDICATIONS
 // ============================================
@@ -115,6 +171,54 @@ export function useCreateMeal() {
       toast({
         title: "Meal logged",
         description: "Your meal has been recorded.",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+}
+
+export function useDeleteMeal() {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  return useMutation({
+    mutationFn: api.deleteMeal,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["meals"] });
+      queryClient.invalidateQueries({ queryKey: ["twin-state"] });
+      toast({
+        title: "Meal deleted",
+        description: "The meal entry has been removed.",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+}
+
+export function useUpdateMeal() {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  return useMutation({
+    mutationFn: ({ mealId, data }: { mealId: number; data: { foods?: string; estimatedCalories?: number } }) => 
+      api.updateMeal(mealId, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["meals"] });
+      toast({
+        title: "Meal updated",
+        description: "Your meal has been updated.",
       });
     },
     onError: (error: Error) => {
@@ -234,7 +338,7 @@ export function useWeather(location?: string) {
   
   // Get user profile for preferred location
   const { data: userData, isLoading: userLoading } = useCurrentUser();
-  const userLocation = userData?.location || (userData as any)?.user?.location;
+  const userLocation = (userData as any)?.user?.location;
   
   // Log geolocation status for debugging
   if (geoError) {
@@ -256,7 +360,7 @@ export function useWeather(location?: string) {
     refetchInterval: 600000, // Refresh every 10 minutes
     enabled: !geoLoading && !userLoading, // Wait for both geolocation and user data to finish
     staleTime: 0, // Always consider data stale
-    cacheTime: 0, // Don't cache at all
+    gcTime: 0, // Don't cache at all (renamed from cacheTime in React Query v5)
   });
 }
 
@@ -537,7 +641,7 @@ export function useUpdateUserProfile() {
   const { toast } = useToast();
 
   return useMutation({
-    mutationFn: async (data: { name?: string; ageGroup?: string; language?: string }) => {
+    mutationFn: async (data: { name?: string; ageGroup?: string; language?: string; location?: string }) => {
       const userId = localStorage.getItem("sahai-user-id");
       if (!userId) throw new Error("User not found");
 
@@ -559,10 +663,11 @@ export function useUpdateUserProfile() {
     onSuccess: (responseData) => {
       console.log("Profile update success, returned data:", responseData);
       
-      // Update the cache directly with the new user data
-      queryClient.setQueryData(["user", "me"], { user: responseData.user });
+      // Invalidate queries to force refetch with fresh data
+      queryClient.invalidateQueries({ queryKey: ["user"] });
+      queryClient.invalidateQueries({ queryKey: ["weather"] });
       
-      console.log("Cache updated with new user data:", responseData.user);
+      console.log("Cache invalidated, will refetch fresh data");
       
       toast({
         title: "Profile updated",
@@ -619,5 +724,50 @@ export function useAvailableVoices() {
     queryKey: ["voices"],
     queryFn: api.getAvailableVoices,
     staleTime: Infinity, // Voices don't change
+  });
+}
+
+// ============================================
+// HEALTH VITALS API
+// ============================================
+
+export function useTodayVitals(vitalType?: string) {
+  return useQuery({
+    queryKey: ["vitals", "today", vitalType],
+    queryFn: () => api.getTodayVitals(vitalType),
+  });
+}
+
+export function useRecentVitals(vitalType: string, count = 10) {
+  return useQuery({
+    queryKey: ["vitals", "recent", vitalType, count],
+    queryFn: () => api.getRecentVitals(vitalType, count),
+  });
+}
+
+export function useCreateVital() {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  return useMutation<
+    any,
+    Error,
+    Parameters<typeof api.createVital>[0]
+  >({
+    mutationFn: api.createVital,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["vitals"] });
+      toast({
+        title: "Vital logged",
+        description: "Your health vital has been recorded successfully.",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to log vital",
+        variant: "destructive",
+      });
+    },
   });
 }

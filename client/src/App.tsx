@@ -21,6 +21,7 @@ import Caregiver from "@/pages/caregiver";
 import Insights from "@/pages/insights";
 import Settings from "@/pages/settings";
 import Exercise from "@/pages/exercise";
+import Vitals from "@/pages/vitals";
 import NotFound from "@/pages/not-found";
 
 function AppRoutes() {
@@ -74,6 +75,7 @@ function AppRoutes() {
         <Route path="/medications" component={Medications} />
         <Route path="/meals" component={Meals} />
         <Route path="/exercise" component={Exercise} />
+        <Route path="/vitals" component={Vitals} />
         <Route path="/symptoms" component={Symptoms} />
         <Route path="/voice" component={Voice} />
         <Route path="/caregiver" component={Caregiver} />

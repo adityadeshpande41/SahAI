@@ -76,7 +76,9 @@ export class ContextAgent extends BaseAgent {
   private async fetchWeather(location?: string): Promise<any> {
     const apiKey = process.env.WEATHER_API_KEY;
     
-    this.log(`Fetching weather for location: ${location || 'default'}`);
+    this.log(`=== WEATHER FETCH START ===`);
+    this.log(`Requested location: ${location || 'none provided'}`);
+    this.log(`API Key present: ${!!apiKey}`);
     
     if (!apiKey) {
       // Return mock data if no API key - vary by location
@@ -123,23 +125,47 @@ export class ContextAgent extends BaseAgent {
       if (isCoordinates) {
         const [lat, lon] = location.split(',');
         url = `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=${apiKey}&units=metric`;
+        this.log(`Using coordinates: ${lat}, ${lon}`);
       } else {
-        const city = location || "Delhi"; // Default location
-        url = `https://api.openweathermap.org/data/2.5/weather?q=${city}&appid=${apiKey}&units=metric`;
+        // Clean up location format for OpenWeatherMap API
+        // "New York, NY" -> "New York,US"
+        // "Mumbai" -> "Mumbai"
+        let cleanLocation = location || "Delhi";
+        
+        // If location has state abbreviation, convert to country code
+        if (cleanLocation.includes(', ')) {
+          const parts = cleanLocation.split(',');
+          const city = parts[0].trim();
+          const stateOrCountry = parts[1].trim();
+          
+          // If it's a US state abbreviation (2 letters), use US country code
+          if (stateOrCountry.length === 2) {
+            cleanLocation = `${city},US`;
+          } else {
+            cleanLocation = city; // Just use city name
+          }
+        }
+        
+        url = `https://api.openweathermap.org/data/2.5/weather?q=${encodeURIComponent(cleanLocation)}&appid=${apiKey}&units=metric`;
+        this.log(`Using city name: ${cleanLocation}`);
       }
 
+      this.log(`Fetching from: ${url.replace(apiKey, 'API_KEY_HIDDEN')}`);
       const response = await fetch(url);
 
       if (!response.ok) {
-        throw new Error("Weather API request failed");
+        const errorText = await response.text();
+        this.log(`Weather API error response: ${errorText}`, "error");
+        throw new Error(`Weather API request failed: ${response.status}`);
       }
 
       const data = await response.json();
+      this.log(`Weather API success for: ${data.name}`);
       
       // Generate health advisory based on weather
       const advisory = this.generateWeatherAdvisory(data.main.temp, data.main.humidity, data.weather[0].main);
 
-      return {
+      const result = {
         temp: `${Math.round(data.main.temp)}°C`,
         tempValue: data.main.temp,
         condition: data.weather[0].description,
@@ -148,8 +174,13 @@ export class ContextAgent extends BaseAgent {
         icon: this.mapWeatherIcon(data.weather[0].main),
         location: data.name,
       };
+      
+      this.log(`=== WEATHER FETCH SUCCESS ===`);
+      return result;
     } catch (error: any) {
-      this.log(`Weather API error: ${error.message}`, "warn");
+      this.log(`Weather API error: ${error.message}`, "error");
+      this.log(`=== WEATHER FETCH FAILED - RETURNING MOCK DATA ===`);
+      
       // Return mock data on error - vary by location
       let temp = 32;
       let condition = "Warm & Humid";
