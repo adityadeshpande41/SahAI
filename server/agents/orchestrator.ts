@@ -219,6 +219,18 @@ CRITICAL RULES:
       return true;
     }
     
+    // Allow greetings and casual conversation starters - be friendly!
+    const greetings = [
+      "hi", "hello", "hey", "good morning", "good afternoon", "good evening",
+      "how are you", "what's up", "how's it going", "how do you do",
+      "greetings", "howdy", "sup", "yo"
+    ];
+    
+    if (greetings.some(greeting => lowerInput.includes(greeting))) {
+      this.log("Greeting detected - allowing through for friendly response");
+      return true;
+    }
+    
     try {
       const response = await this.callOpenAI([
         {
@@ -226,6 +238,8 @@ CRITICAL RULES:
           content: `You are a health topic classifier for a senior health companion app. Determine if the user's message is related to health, wellness, medical topics, or daily living activities.
 
 IMPORTANT: The user may write in ANY language (English, Hindi, Marathi, Tamil, etc.). You must understand and classify messages in all languages.
+
+CRITICAL: Be WELCOMING and CONVERSATIONAL. Greetings, check-ins, and casual conversation are ALWAYS allowed.
 
 Health-related topics include:
 - Medications, symptoms, pain, discomfort
@@ -238,11 +252,14 @@ Health-related topics include:
 - Caregiving, family health concerns
 - Questions about what to eat, drink, or do for health
 - Food choices and meal planning (e.g., "can I eat pizza", "should I have pasta")
+- Greetings and check-ins (e.g., "how are you", "hello", "good morning")
+- Casual conversation about their day or wellbeing
 
 CRITICAL: ANY question about eating, food, meals, or nutrition is ALWAYS health-related, even if it's about pizza, burgers, or any other food.
+CRITICAL: Greetings and friendly check-ins are ALWAYS allowed - we want to be warm and welcoming!
 
 Non-health topics include:
-- Politics, news, current events
+- Politics, news, current events (unless health-related)
 - Sports scores, entertainment (unless asking about exercise)
 - Weather (unless related to health impact)
 - General knowledge questions unrelated to health
@@ -251,12 +268,14 @@ Non-health topics include:
 - Travel planning (unless health-related)
 
 Examples:
+- "Hey, how are you?" - YES (friendly greeting)
+- "Good morning!" - YES (greeting)
 - "Can I eat pizza now?" - YES (food/nutrition)
 - "Should I eat pasta for dinner?" - YES (meal planning)
 - "What should I eat for protein?" - YES (nutrition)
 - "Is it okay to have ice cream?" - YES (food choice)
 - "Who won the election?" - NO (politics)
-- "What's the weather?" - NO (general weather)
+- "What's the capital of France?" - NO (general knowledge)
 - "How do I fix my phone?" - NO (technology)
 
 Respond with ONLY "yes" or "no".`

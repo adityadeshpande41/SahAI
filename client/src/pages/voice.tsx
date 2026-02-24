@@ -191,25 +191,68 @@ export default function Voice() {
         audioRef.current = null;
       }
       
-      // Pass user's language preference to TTS
-      const audioBlob = await textToSpeech(text, undefined, { language: userLanguage });
-      const audioUrl = URL.createObjectURL(audioBlob);
-      const audio = new Audio(audioUrl);
-      audioRef.current = audio;
-      
-      audio.onended = () => {
-        setIsSpeaking(false);
-        URL.revokeObjectURL(audioUrl);
-        audioRef.current = null;
-      };
-      
-      audio.onerror = () => {
-        setIsSpeaking(false);
-        URL.revokeObjectURL(audioUrl);
-        audioRef.current = null;
-      };
-      
-      await audio.play();
+      // Try ElevenLabs TTS first
+      try {
+        const audioBlob = await textToSpeech(text, undefined, { language: userLanguage });
+        const audioUrl = URL.createObjectURL(audioBlob);
+        const audio = new Audio(audioUrl);
+        audioRef.current = audio;
+        
+        audio.onended = () => {
+          setIsSpeaking(false);
+          URL.revokeObjectURL(audioUrl);
+          audioRef.current = null;
+        };
+        
+        audio.onerror = () => {
+          setIsSpeaking(false);
+          URL.revokeObjectURL(audioUrl);
+          audioRef.current = null;
+        };
+        
+        await audio.play();
+      } catch (ttsError: any) {
+        console.log("ElevenLabs TTS failed, falling back to browser speech:", ttsError.message);
+        
+        // Fallback to browser's built-in speech synthesis
+        if ('speechSynthesis' in window) {
+          const utterance = new SpeechSynthesisUtterance(text);
+          
+          // Set language based on user preference
+          const languageMap: Record<string, string> = {
+            "English": "en-US",
+            "Hindi": "hi-IN",
+            "Spanish": "es-ES",
+            "French": "fr-FR",
+            "German": "de-DE",
+            "Chinese": "zh-CN",
+            "Japanese": "ja-JP",
+            "Arabic": "ar-SA",
+            "Tamil": "ta-IN",
+            "Telugu": "te-IN",
+            "Bengali": "bn-IN",
+            "Marathi": "mr-IN",
+            "Gujarati": "gu-IN",
+            "Kannada": "kn-IN",
+          };
+          
+          utterance.lang = languageMap[userLanguage] || "en-US";
+          utterance.rate = 0.9; // Slightly slower for elderly users
+          utterance.pitch = 1.0;
+          
+          utterance.onend = () => {
+            setIsSpeaking(false);
+          };
+          
+          utterance.onerror = () => {
+            setIsSpeaking(false);
+          };
+          
+          window.speechSynthesis.speak(utterance);
+        } else {
+          throw new Error("Speech synthesis not supported");
+        }
+      }
     } catch (error: any) {
       console.error("TTS error:", error);
       setIsSpeaking(false);
