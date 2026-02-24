@@ -1693,12 +1693,17 @@ Keep it simple and safe for elderly users.`,
       const { FutureSelfAgent } = await import("./agents/future-self-agent");
       const futureSelfAgent = new FutureSelfAgent();
       
+      console.log("[Future Self] Starting prediction for user:", user.name);
+      
       const result = await futureSelfAgent.execute(
         { action: "predict_paths" },
         { user, currentTime: new Date() }
       );
 
+      console.log("[Future Self] Result:", JSON.stringify(result, null, 2));
+
       if (!result.success) {
+        console.error("[Future Self] Error:", result.message);
         return res.status(500).json({ error: result.message });
       }
 
