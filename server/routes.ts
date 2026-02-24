@@ -8,6 +8,7 @@ import { MedicationAgent } from "./agents/medication-agent";
 import type { User } from "@shared/schema";
 import multer from "multer";
 import { uploadFile } from "./lib/supabase-storage";
+import { aiGuardrails } from "./middleware/ai-guardrails";
 
 const upload = multer({ 
   storage: multer.memoryStorage(),
@@ -644,7 +645,7 @@ export async function registerRoutes(
     }
   });
 
-  app.post("/api/medications/ai-insights", async (req, res) => {
+  app.post("/api/medications/ai-insights", aiGuardrails, async (req, res) => {
     try {
       const user = await getCurrentUser(req);
       if (!user) {
@@ -802,7 +803,7 @@ export async function registerRoutes(
     }
   });
 
-  app.post("/api/meals/ai-insights", async (req, res) => {
+  app.post("/api/meals/ai-insights", aiGuardrails, async (req, res) => {
     try {
       const user = await getCurrentUser(req);
       if (!user) {
@@ -937,7 +938,7 @@ export async function registerRoutes(
     }
   });
 
-  app.post("/api/activities/ai-insights", async (req, res) => {
+  app.post("/api/activities/ai-insights", aiGuardrails, async (req, res) => {
     try {
       const user = await getCurrentUser(req);
       if (!user) {
@@ -1248,7 +1249,7 @@ Keep it simple and safe for elderly users.`,
     }
   });
 
-  app.post("/api/motivation/meal", async (req, res) => {
+  app.post("/api/motivation/meal", aiGuardrails, async (req, res) => {
     try {
       const user = await getCurrentUser(req);
       if (!user) {
@@ -1287,7 +1288,7 @@ Keep it simple and safe for elderly users.`,
     }
   });
 
-  app.post("/api/motivation/activity", async (req, res) => {
+  app.post("/api/motivation/activity", aiGuardrails, async (req, res) => {
     try {
       const user = await getCurrentUser(req);
       if (!user) {
@@ -1305,7 +1306,7 @@ Keep it simple and safe for elderly users.`,
     }
   });
 
-  app.post("/api/motivation/medication", async (req, res) => {
+  app.post("/api/motivation/medication", aiGuardrails, async (req, res) => {
     try {
       const user = await getCurrentUser(req);
       if (!user) {

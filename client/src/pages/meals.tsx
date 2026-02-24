@@ -15,7 +15,6 @@ import {
   Sun,
   Moon,
   Cookie,
-  Droplets,
   Pill,
   Check,
   Loader2,
@@ -82,6 +81,8 @@ export default function Meals() {
   const [photoMotivation, setPhotoMotivation] = useState<string | null>(null);
   const [aiInsights, setAiInsights] = useState<any>(null);
   const [loadingInsights, setLoadingInsights] = useState(false);
+  const [showCreateCustom, setShowCreateCustom] = useState(false);
+  const [customMeal, setCustomMeal] = useState({ name: "", emoji: "🍽️", calories: 0, quantity: "" });
 
   const logMeal = async (mealType: string, foods?: string, estimatedCalories?: number) => {
     await createMeal.mutateAsync({
@@ -219,6 +220,33 @@ export default function Meals() {
     toast({
       title: "Reset complete",
       description: "Quick log items reset to defaults.",
+    });
+  };
+
+  const addCustomMealToQuickLog = () => {
+    if (!customMeal.name || !customMeal.calories || !customMeal.quantity) {
+      toast({
+        title: "Missing information",
+        description: "Please fill in all fields",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const newFood = {
+      name: customMeal.name,
+      emoji: customMeal.emoji || "🍽️",
+      calories: customMeal.calories,
+      quantity: customMeal.quantity,
+    };
+
+    setCommonFoods([...commonFoods, newFood]);
+    setShowCreateCustom(false);
+    setCustomMeal({ name: "", emoji: "🍽️", calories: 0, quantity: "" });
+    
+    toast({
+      title: "Custom meal added",
+      description: `${newFood.emoji} ${newFood.name} added to quick log`,
     });
   };
 
@@ -661,6 +689,73 @@ export default function Meals() {
                 <span className="text-[10px] text-muted-foreground">{food.calories} cal</span>
               </Button>
             ))}
+          </div>
+          <div className="flex gap-2">
+            <Dialog open={showCreateCustom} onOpenChange={setShowCreateCustom}>
+              <DialogTrigger asChild>
+                <Button variant="outline" size="sm" className="flex-1">
+                  <Plus className="w-3.5 h-3.5 mr-1" /> Create Custom Meal
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Create Custom Meal</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-4 pt-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="custom-name">Meal Name</Label>
+                    <Input
+                      id="custom-name"
+                      placeholder="e.g., Chicken Biryani, Dal Tadka"
+                      value={customMeal.name}
+                      onChange={(e) => setCustomMeal({ ...customMeal, name: e.target.value })}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="custom-emoji">Emoji (optional)</Label>
+                    <Input
+                      id="custom-emoji"
+                      placeholder="🍽️"
+                      value={customMeal.emoji}
+                      onChange={(e) => setCustomMeal({ ...customMeal, emoji: e.target.value })}
+                      maxLength={2}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Common: 🍛 🍜 🍲 🥘 🍱 🥗 🍕 🍔 🌮 🥙 🍝 🍣
+                    </p>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-2">
+                      <Label htmlFor="custom-quantity">Quantity</Label>
+                      <Input
+                        id="custom-quantity"
+                        placeholder="e.g., 1 plate, 2 cups"
+                        value={customMeal.quantity}
+                        onChange={(e) => setCustomMeal({ ...customMeal, quantity: e.target.value })}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="custom-calories">Calories</Label>
+                      <Input
+                        id="custom-calories"
+                        type="number"
+                        placeholder="e.g., 350"
+                        value={customMeal.calories || ""}
+                        onChange={(e) => setCustomMeal({ ...customMeal, calories: parseInt(e.target.value) || 0 })}
+                      />
+                    </div>
+                  </div>
+                  <div className="flex gap-2 pt-2">
+                    <Button onClick={addCustomMealToQuickLog} className="flex-1">
+                      <Check className="w-4 h-4 mr-1" /> Add to Quick Log
+                    </Button>
+                    <Button variant="outline" onClick={() => setShowCreateCustom(false)}>
+                      Cancel
+                    </Button>
+                  </div>
+                </div>
+              </DialogContent>
+            </Dialog>
           </div>
           <p className="text-xs text-center text-muted-foreground">
             Tap a food to log it instantly, use voice, or customize your quick log items
