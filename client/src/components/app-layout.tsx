@@ -70,11 +70,11 @@ export function AppLayout({ children }: { children: ReactNode }) {
 
   return (
     <SidebarProvider style={style as React.CSSProperties}>
-      <div className="flex h-screen w-full">
+      <div className="flex h-screen w-full bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50">
         <AppSidebar />
         <div className="flex flex-col flex-1 min-w-0">
           <DisclaimerBanner />
-          <header className="flex items-center justify-between gap-1 px-4 py-2 border-b border-border/50 glass sticky top-0 z-40">
+          <header className="flex items-center justify-between gap-1 px-4 py-2 border-b border-gray-200 bg-white/60 backdrop-blur-sm sticky top-0 z-40">
             <SidebarTrigger data-testid="button-sidebar-toggle" />
             <ThemeToggle />
           </header>

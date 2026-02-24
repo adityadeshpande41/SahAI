@@ -89,13 +89,14 @@ export default function Caregiver() {
   }
 
   return (
-    <div className="space-y-5 animate-fade-in">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight text-gradient" data-testid="text-caregiver-title">Caregiver</h1>
-        <p className="text-sm text-muted-foreground mt-1">Manage caregiver access and alerts</p>
-      </div>
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 -m-6 p-6">
+      <div className="space-y-5 animate-fade-in">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight text-gray-900" data-testid="text-caregiver-title">Caregiver</h1>
+          <p className="text-sm text-gray-600 mt-1">Manage caregiver access and alerts</p>
+        </div>
 
-      <Card className="card-elevated" data-testid="card-caregiver-info">
+      <Card className="bg-white shadow-lg border border-gray-200" data-testid="card-caregiver-info">
         <CardHeader className="pb-2">
           <CardTitle className="text-sm font-semibold flex items-center gap-2">
             <User className="w-4 h-4" /> Caregiver Contact
@@ -153,7 +154,7 @@ export default function Caregiver() {
         </CardContent>
       </Card>
 
-      <Card className="card-elevated" data-testid="card-privacy">
+      <Card className="bg-white shadow-lg border border-gray-200" data-testid="card-privacy">
         <CardHeader className="pb-2">
           <CardTitle className="text-sm font-semibold flex items-center gap-2">
             <Shield className="w-4 h-4" /> Privacy Controls
@@ -174,7 +175,7 @@ export default function Caregiver() {
         </CardContent>
       </Card>
 
-      <Card className="card-elevated" data-testid="card-summary-preview">
+      <Card className="bg-white shadow-lg border border-gray-200" data-testid="card-summary-preview">
         <CardHeader className="pb-2">
           <CardTitle className="text-sm font-semibold flex items-center gap-2">
             <Bell className="w-4 h-4" /> Caregiver Summary Preview
@@ -208,7 +209,7 @@ export default function Caregiver() {
         </CardContent>
       </Card>
 
-      <Card className="card-elevated" data-testid="card-send-update">
+      <Card className="bg-white shadow-lg border border-gray-200" data-testid="card-send-update">
         <CardHeader className="pb-2">
           <CardTitle className="text-sm font-semibold flex items-center gap-2">
             <Heart className="w-4 h-4" /> Send Progress Update
@@ -244,7 +245,7 @@ export default function Caregiver() {
         </CardContent>
       </Card>
 
-      <Card className="card-elevated" data-testid="card-alert-simulation">
+      <Card className="bg-white shadow-lg border border-gray-200" data-testid="card-alert-simulation">
         <CardHeader className="pb-2">
           <CardTitle className="text-sm font-semibold flex items-center gap-2">
             <AlertTriangle className="w-4 h-4" /> Alert Simulation
@@ -275,6 +276,7 @@ export default function Caregiver() {
           )}
         </CardContent>
       </Card>
+      </div>
     </div>
   );
 }

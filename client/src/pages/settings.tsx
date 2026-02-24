@@ -97,14 +97,15 @@ export default function Settings() {
   ];
 
   return (
-    <div className="space-y-5 animate-fade-in">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight text-gradient" data-testid="text-settings-title">Settings</h1>
-        <p className="text-sm text-muted-foreground mt-1">Customize your SahAI experience</p>
-      </div>
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 -m-6 p-6">
+      <div className="space-y-5 animate-fade-in">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight text-gray-900" data-testid="text-settings-title">Settings</h1>
+          <p className="text-sm text-gray-600 mt-1">Customize your SahAI experience</p>
+        </div>
 
       {/* User Profile Section */}
-      <Card className="card-elevated" data-testid="card-profile">
+      <Card className="bg-white shadow-lg border border-gray-200" data-testid="card-profile">
         <CardHeader className="pb-2">
           <div className="flex items-center justify-between">
             <CardTitle className="text-sm font-semibold flex items-center gap-2">
@@ -237,7 +238,7 @@ export default function Settings() {
         </CardContent>
       </Card>
 
-      <Card className="card-elevated" data-testid="card-theme">
+      <Card className="bg-white shadow-lg border border-gray-200" data-testid="card-theme">
         <CardHeader className="pb-2">
           <CardTitle className="text-sm font-semibold flex items-center gap-2">
             <Sun className="w-4 h-4" /> Appearance
@@ -261,7 +262,7 @@ export default function Settings() {
         </CardContent>
       </Card>
 
-      <Card className="card-elevated" data-testid="card-accessibility">
+      <Card className="bg-white shadow-lg border border-gray-200" data-testid="card-accessibility">
         <CardHeader className="pb-2">
           <CardTitle className="text-sm font-semibold flex items-center gap-2">
             <Eye className="w-4 h-4" /> Accessibility
@@ -292,7 +293,7 @@ export default function Settings() {
         </CardContent>
       </Card>
 
-      <Card className="card-elevated" data-testid="card-notifications">
+      <Card className="bg-white shadow-lg border border-gray-200" data-testid="card-notifications">
         <CardHeader className="pb-2">
           <CardTitle className="text-sm font-semibold flex items-center gap-2">
             <Bell className="w-4 h-4" /> Push Notifications
@@ -338,7 +339,7 @@ export default function Settings() {
         </CardContent>
       </Card>
 
-      <Card className="card-elevated" data-testid="card-voice-settings">
+      <Card className="bg-white shadow-lg border border-gray-200" data-testid="card-voice-settings">
         <CardHeader className="pb-2">
           <CardTitle className="text-sm font-semibold flex items-center gap-2">
             <Volume2 className="w-4 h-4" /> Voice & Speech
@@ -366,7 +367,7 @@ export default function Settings() {
         </CardContent>
       </Card>
 
-      <Card className="card-elevated" data-testid="card-language">
+      <Card className="bg-white shadow-lg border border-gray-200" data-testid="card-language">
         <CardHeader className="pb-2">
           <CardTitle className="text-sm font-semibold flex items-center gap-2">
             <Languages className="w-4 h-4" /> Language
@@ -395,6 +396,7 @@ export default function Settings() {
           <RefreshCw className="w-4 h-4 mr-1" /> Reset All
         
         </Button>
+      </div>
       </div>
     </div>
   );

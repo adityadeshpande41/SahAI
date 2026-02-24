@@ -89,21 +89,21 @@ export default function Onboarding() {
   };
 
   return (
-    <div className="mesh-gradient min-h-screen overflow-hidden flex flex-col">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 overflow-hidden flex flex-col">
       <div className="flex-1 flex items-center justify-center p-4 relative">
         <div className="w-full max-w-2xl space-y-8">
           {/* Header Section */}
           <div className="text-center space-y-4 animate-fade-in">
             <div className="flex justify-center">
-              <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-red-500 to-pink-500 flex items-center justify-center shadow-lg shadow-red-500/30 animate-scale-in">
+              <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center shadow-lg animate-scale-in">
                 <Heart className="w-11 h-11 text-white" />
               </div>
             </div>
             <div className="space-y-2">
-              <h1 className="text-4xl font-bold tracking-tight text-gradient">
+              <h1 className="text-4xl font-bold tracking-tight bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
                 Set up your SahAI Twin
               </h1>
-              <p className="text-lg text-muted-foreground max-w-md mx-auto">
+              <p className="text-lg text-gray-600 max-w-md mx-auto">
                 {stepDescriptions[step - 1]}
               </p>
             </div>
@@ -124,7 +124,7 @@ export default function Onboarding() {
                         w-10 h-10 rounded-full flex items-center justify-center font-semibold text-sm
                         transition-all duration-300 ${
                           isActive
-                            ? 'bg-gradient-to-r from-red-500 to-pink-500 text-white ring-4 ring-red-500/30 scale-110'
+                            ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white ring-4 ring-blue-500/30 scale-110'
                             : isCompleted
                             ? 'bg-green-500 text-white'
                             : 'bg-secondary text-muted-foreground'
@@ -154,8 +154,7 @@ export default function Onboarding() {
 
           {/* Main Content Card */}
           <Card className={`
-            glass card-elevated rounded-2xl backdrop-blur-xl border border-white/20
-            bg-gradient-to-br ${getStepColor(step)}
+            bg-white shadow-lg border border-gray-200 rounded-2xl
             overflow-hidden animate-scale-in
             transition-all duration-300
           `}>
@@ -424,10 +423,10 @@ export default function Onboarding() {
                     <Sparkles className="w-12 h-12 text-white" />
                   </div>
                   <div className="space-y-3">
-                    <h2 className="text-3xl font-bold text-gradient">
+                    <h2 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
                       Welcome, {form.name || "friend"}!
                     </h2>
-                    <p className="text-base text-muted-foreground leading-relaxed max-w-md mx-auto">
+                    <p className="text-base text-gray-600 leading-relaxed max-w-md mx-auto">
                       Your SahAI Twin is ready. It will learn your routine and help you stay on track with medications, meals, and wellness.
                     </p>
                   </div>
@@ -470,7 +469,7 @@ export default function Onboarding() {
                 <Button
                   onClick={() => setStep(s => s + 1)}
                   disabled={!canNext()}
-                  className="rounded-xl h-11 px-6 bg-gradient-to-r from-red-500 to-pink-500 hover:from-red-600 hover:to-pink-600 text-white font-semibold"
+                  className="rounded-xl h-11 px-6 bg-blue-600 hover:bg-blue-700 text-white font-semibold"
                   data-testid="button-next"
                 >
                   Next
@@ -479,7 +478,7 @@ export default function Onboarding() {
               ) : (
                 <Button
                   onClick={handleFinish}
-                  className="rounded-xl h-11 px-6 bg-gradient-to-r from-red-500 to-pink-500 hover:from-red-600 hover:to-pink-600 text-white font-semibold"
+                  className="rounded-xl h-11 px-6 bg-blue-600 hover:bg-blue-700 text-white font-semibold"
                   data-testid="button-create-twin"
                 >
                   Create My SahAI Twin

@@ -71,13 +71,14 @@ export default function Medications() {
   }
 
   return (
-    <div className="space-y-5 animate-fade-in">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight text-gradient" data-testid="text-medications-title">Medications</h1>
-        <p className="text-sm text-muted-foreground mt-1">Track and manage your daily medications</p>
-      </div>
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 -m-6 p-6">
+      <div className="space-y-5 animate-fade-in">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight text-gray-900" data-testid="text-medications-title">Medications</h1>
+          <p className="text-sm text-gray-600 mt-1">Track and manage your daily medications</p>
+        </div>
 
-      <Card className="card-elevated" data-testid="card-adherence">
+      <Card className="bg-white shadow-lg border border-gray-200" data-testid="card-adherence">
         <CardContent className="p-4">
           <div className="flex items-center justify-between gap-1 mb-2">
             <span className="text-sm font-medium">Today's Adherence</span>
@@ -97,7 +98,7 @@ export default function Medications() {
         <h2 className="text-sm font-semibold mb-3 text-muted-foreground uppercase tracking-wider flex items-center gap-2"><span className="w-1 h-4 rounded-full bg-primary inline-block" />Today's Schedule</h2>
         <div className="space-y-3">
           {meds && meds.schedule && meds.schedule.length > 0 ? meds.schedule.map((med: any) => (
-            <Card key={med.id} className={`card-elevated ${med.takenAt ? "opacity-75" : ""}`} data-testid={`card-med-${med.id}`}>
+            <Card key={med.id} className={`bg-white shadow-lg border border-gray-200 ${med.takenAt ? "opacity-75" : ""}`} data-testid={`card-med-${med.id}`}>
               <CardContent className="p-4">
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex items-start gap-3 flex-1 min-w-0">
@@ -156,7 +157,7 @@ export default function Medications() {
               </CardContent>
             </Card>
           )) : (
-            <Card className="card-elevated">
+            <Card className="bg-white shadow-lg border border-gray-200">
               <CardContent className="p-8 text-center text-muted-foreground">
                 <Pill className="w-12 h-12 mx-auto mb-3 opacity-50" />
                 <p>No medications scheduled for today</p>
@@ -174,7 +175,7 @@ export default function Medications() {
             Upload Prescription Image
           </Button>
         ) : (
-          <Card data-testid="card-upload-prescription">
+          <Card data-testid="card-upload-prescription" className="bg-white shadow-lg border border-gray-200">
             <CardContent className="p-4 space-y-4">
               {!extractedData ? (
                 <div className="border-2 border-dashed border-primary/30 rounded-xl p-8 text-center transition-colors bg-gradient-to-br from-primary/5 to-primary/10 dark:from-primary/5 dark:to-primary/10">
@@ -208,7 +209,7 @@ export default function Medications() {
                   </div>
 
                   {extractedData.medications?.map((med: any, idx: number) => (
-                    <Card key={idx}>
+                    <Card key={idx} className="bg-white shadow-lg border border-gray-200">
                       <CardHeader className="pb-2">
                         <div className="flex items-center gap-2">
                           <AlertCircle className="w-4 h-4 text-primary" />
@@ -258,7 +259,7 @@ export default function Medications() {
           </Card>
         )}
       </div>
-      <Card data-testid="card-med-explanation">
+      <Card className="bg-white shadow-lg border border-gray-200" data-testid="card-med-explanation">
         <CardHeader className="pb-2">
           <div className="flex items-center gap-2">
             <MessageSquare className="w-4 h-4 text-primary" />
@@ -271,6 +272,7 @@ export default function Medications() {
           </p>
         </CardContent>
       </Card>
+      </div>
     </div>
   );
 }

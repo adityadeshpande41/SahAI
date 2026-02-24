@@ -83,16 +83,17 @@ export default function Exercise() {
   };
 
   return (
-    <div className="space-y-5 animate-fade-in">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight text-gradient" data-testid="text-exercise-title">
-          Exercise & Activity
-        </h1>
-        <p className="text-sm text-muted-foreground mt-1">Track your physical activities</p>
-      </div>
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 -m-6 p-6">
+      <div className="space-y-5 animate-fade-in">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight text-gray-900" data-testid="text-exercise-title">
+            Exercise & Activity
+          </h1>
+          <p className="text-sm text-gray-600 mt-1">Track your physical activities</p>
+        </div>
 
       {/* Today's Summary */}
-      <Card className="card-elevated bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-emerald-950/20 dark:to-teal-950/20 border-emerald-200 dark:border-emerald-800">
+      <Card className="bg-white shadow-lg border border-gray-200 bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-emerald-950/20 dark:to-teal-950/20 border-emerald-200 dark:border-emerald-800">
         <CardContent className="p-4">
           <div className="grid grid-cols-3 gap-3 text-center">
             <div className="rounded-xl bg-background/60 p-3">
@@ -118,7 +119,7 @@ export default function Exercise() {
       </Card>
 
       {/* Weekly Goal */}
-      <Card className="card-elevated">
+      <Card className="bg-white shadow-lg border border-gray-200">
         <CardHeader className="pb-2">
           <div className="flex items-center gap-2">
             <Target className="w-4 h-4 text-primary" />
@@ -143,7 +144,7 @@ export default function Exercise() {
       </Card>
 
       {/* Quick Log Exercises */}
-      <Card className="card-elevated">
+      <Card className="bg-white shadow-lg border border-gray-200">
         <CardHeader className="pb-2">
           <CardTitle className="text-sm font-semibold">Quick Log</CardTitle>
         </CardHeader>
@@ -174,7 +175,7 @@ export default function Exercise() {
 
       {/* Log Form */}
       {showForm && (
-        <Card className="card-elevated animate-slide-up">
+        <Card className="bg-white shadow-lg border border-gray-200 animate-slide-up">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-semibold">Log Exercise</CardTitle>
           </CardHeader>
@@ -257,7 +258,7 @@ export default function Exercise() {
             <Loader2 className="w-6 h-6 animate-spin text-primary" />
           </div>
         ) : todayActivities.length === 0 ? (
-          <Card className="card-elevated">
+          <Card className="bg-white shadow-lg border border-gray-200">
             <CardContent className="p-8 text-center">
               <Activity className="w-12 h-12 mx-auto text-muted-foreground/50 mb-3" />
               <p className="text-sm text-muted-foreground">No activities logged today</p>
@@ -274,7 +275,7 @@ export default function Exercise() {
               const calories = (activity.duration || 0) * (exercise?.caloriesPerMin || 5);
 
               return (
-                <Card key={activity.id} className="card-elevated">
+                <Card key={activity.id} className="bg-white shadow-lg border border-gray-200">
                   <CardContent className="p-4">
                     <div className="flex items-start gap-3">
                       <div
@@ -315,7 +316,7 @@ export default function Exercise() {
       </div>
 
       {/* Health Tip */}
-      <Card className="card-elevated bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-950/20 dark:to-indigo-950/20 border-blue-200 dark:border-blue-800">
+      <Card className="bg-white shadow-lg border border-gray-200 bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-950/20 dark:to-indigo-950/20 border-blue-200 dark:border-blue-800">
         <CardContent className="p-4">
           <div className="flex items-start gap-3">
             <TrendingUp className="w-5 h-5 text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0" />
@@ -329,6 +330,7 @@ export default function Exercise() {
           </div>
         </CardContent>
       </Card>
+      </div>
     </div>
   );
 }

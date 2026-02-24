@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -70,13 +70,9 @@ export default function Register() {
       const data = await response.json();
 
       if (response.ok) {
-        console.log("Registration successful:", data);
-        
-        // Store user ID in localStorage
         localStorage.setItem("sahai-user-id", data.userId);
         localStorage.setItem("sahai-authenticated", "true");
         
-        // Force a small delay to ensure localStorage is written
         await new Promise(resolve => setTimeout(resolve, 100));
         
         toast({
@@ -84,7 +80,6 @@ export default function Register() {
           description: "Your account has been created successfully.",
         });
         
-        // Redirect to onboarding
         setLocation("/onboarding");
       } else {
         toast({
@@ -94,7 +89,6 @@ export default function Register() {
         });
       }
     } catch (error: any) {
-      console.error("Registration error:", error);
       toast({
         title: "Error",
         description: error.message || "Failed to connect to server",
@@ -106,34 +100,73 @@ export default function Register() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary/5 via-background to-primary/10 flex items-center justify-center p-4">
-      <Card className="w-full max-w-md">
-        <CardHeader className="text-center">
-          <div className="flex items-center justify-center gap-3 mb-4">
-            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary to-primary/70 flex items-center justify-center shadow-lg">
-              <Heart className="w-6 h-6 text-primary-foreground" />
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 flex items-center justify-center p-4">
+      {/* Back Button */}
+      <button
+        onClick={() => setLocation("/landing")}
+        className="absolute top-6 left-6 flex items-center gap-2 text-gray-600 hover:text-gray-900 transition-colors"
+      >
+        <ArrowLeft className="w-4 h-4" />
+        <span className="font-medium">Back</span>
+      </button>
+
+      <Card className="w-full max-w-lg bg-white/80 backdrop-blur-sm border-gray-200 shadow-2xl">
+        <CardHeader className="text-center space-y-4 pb-6">
+          <div className="flex items-center justify-center gap-3">
+            <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center shadow-lg">
+              <Heart className="w-7 h-7 text-white" />
             </div>
-            <h1 className="text-3xl font-bold tracking-tight text-gradient">SahAI</h1>
+            <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+              SahAI
+            </h1>
           </div>
-          <CardTitle className="text-xl">Create Your Account</CardTitle>
-          <p className="text-sm text-muted-foreground">Join your personal health copilot</p>
+          <div>
+            <h2 className="text-2xl font-bold text-gray-900">Create Your Account</h2>
+            <p className="text-sm text-gray-600 mt-1">Join your personal health copilot</p>
+          </div>
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-5">
           <form onSubmit={handleRegister} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="name">Full Name *</Label>
-              <Input
-                id="name"
-                type="text"
-                placeholder="Enter your full name"
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                disabled={isLoading}
-              />
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="name" className="text-gray-700 font-medium">Full Name *</Label>
+                <Input
+                  id="name"
+                  type="text"
+                  placeholder="Your name"
+                  value={formData.name}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  disabled={isLoading}
+                  className="h-11 rounded-xl border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="ageGroup" className="text-gray-700 font-medium">Age Group *</Label>
+                <Select
+                  value={formData.ageGroup}
+                  onValueChange={(value) => setFormData({ ...formData, ageGroup: value })}
+                  disabled={isLoading}
+                >
+                  <SelectTrigger id="ageGroup" className="h-11 rounded-xl border-gray-300">
+                    <SelectValue placeholder="Select age" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="18-24">18-24</SelectItem>
+                    <SelectItem value="25-34">25-34</SelectItem>
+                    <SelectItem value="35-44">35-44</SelectItem>
+                    <SelectItem value="45-54">45-54</SelectItem>
+                    <SelectItem value="55-64">55-64</SelectItem>
+                    <SelectItem value="65-74">65-74</SelectItem>
+                    <SelectItem value="75-84">75-84</SelectItem>
+                    <SelectItem value="85+">85+</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="username">Username *</Label>
+              <Label htmlFor="username" className="text-gray-700 font-medium">Username *</Label>
               <Input
                 id="username"
                 type="text"
@@ -141,64 +174,46 @@ export default function Register() {
                 value={formData.username}
                 onChange={(e) => setFormData({ ...formData, username: e.target.value })}
                 disabled={isLoading}
+                className="h-11 rounded-xl border-gray-300 focus:border-blue-500 focus:ring-blue-500"
               />
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="password">Password *</Label>
-              <Input
-                id="password"
-                type="password"
-                placeholder="Create a password (min 6 characters)"
-                value={formData.password}
-                onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                disabled={isLoading}
-              />
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="password" className="text-gray-700 font-medium">Password *</Label>
+                <Input
+                  id="password"
+                  type="password"
+                  placeholder="Min 6 characters"
+                  value={formData.password}
+                  onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                  disabled={isLoading}
+                  className="h-11 rounded-xl border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="confirmPassword" className="text-gray-700 font-medium">Confirm *</Label>
+                <Input
+                  id="confirmPassword"
+                  type="password"
+                  placeholder="Confirm password"
+                  value={formData.confirmPassword}
+                  onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
+                  disabled={isLoading}
+                  className="h-11 rounded-xl border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+                />
+              </div>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="confirmPassword">Confirm Password *</Label>
-              <Input
-                id="confirmPassword"
-                type="password"
-                placeholder="Confirm your password"
-                value={formData.confirmPassword}
-                onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
-                disabled={isLoading}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="ageGroup">Age Group *</Label>
-              <Select
-                value={formData.ageGroup}
-                onValueChange={(value) => setFormData({ ...formData, ageGroup: value })}
-                disabled={isLoading}
-              >
-                <SelectTrigger id="ageGroup">
-                  <SelectValue placeholder="Select your age group" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="18-24">18-24</SelectItem>
-                  <SelectItem value="25-34">25-34</SelectItem>
-                  <SelectItem value="35-44">35-44</SelectItem>
-                  <SelectItem value="45-54">45-54</SelectItem>
-                  <SelectItem value="55-64">55-64</SelectItem>
-                  <SelectItem value="65-74">65-74</SelectItem>
-                  <SelectItem value="75-84">75-84</SelectItem>
-                  <SelectItem value="85+">85+</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="language">Preferred Language</Label>
+              <Label htmlFor="language" className="text-gray-700 font-medium">Preferred Language</Label>
               <Select
                 value={formData.language}
                 onValueChange={(value) => setFormData({ ...formData, language: value })}
                 disabled={isLoading}
               >
-                <SelectTrigger id="language">
+                <SelectTrigger id="language" className="h-11 rounded-xl border-gray-300">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -210,7 +225,11 @@ export default function Register() {
               </Select>
             </div>
 
-            <Button type="submit" className="w-full" disabled={isLoading}>
+            <Button 
+              type="submit" 
+              className="w-full h-12 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-medium shadow-md hover:shadow-lg transition-all mt-6" 
+              disabled={isLoading}
+            >
               {isLoading ? (
                 <>
                   <Loader2 className="w-4 h-4 mr-2 animate-spin" />
@@ -222,20 +241,18 @@ export default function Register() {
             </Button>
           </form>
 
-          <div className="mt-6 flex items-center justify-center gap-2">
-            <Button
-              variant="ghost"
-              size="sm"
+          <p className="text-sm text-center text-gray-600">
+            Already have an account?{" "}
+            <button
+              type="button"
+              className="text-blue-600 hover:text-blue-700 font-semibold hover:underline"
               onClick={() => setLocation("/login")}
-              disabled={isLoading}
-              className="text-muted-foreground"
             >
-              <ArrowLeft className="w-4 h-4 mr-2" />
-              Back to Login
-            </Button>
-          </div>
+              Sign in
+            </button>
+          </p>
 
-          <p className="text-xs text-center text-muted-foreground mt-4">
+          <p className="text-xs text-center text-gray-500 pt-2">
             By creating an account, you agree to our Terms of Service and Privacy Policy
           </p>
         </CardContent>

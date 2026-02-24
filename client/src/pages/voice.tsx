@@ -308,12 +308,13 @@ export default function Voice() {
   }
 
   return (
-    <div className="flex flex-col h-[calc(100vh-8rem)] md:h-[calc(100vh-6rem)] animate-fade-in">
-      <div className="flex items-center justify-between gap-1 mb-4">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight text-gradient" data-testid="text-voice-title">Talk to SahAI</h1>
-          <p className="text-sm text-muted-foreground mt-0.5">Your health conversation assistant</p>
-        </div>
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 -m-6 p-6 flex flex-col h-[calc(100vh-8rem)] md:h-[calc(100vh-6rem)]">
+      <div className="flex flex-col h-full animate-fade-in">
+        <div className="flex items-center justify-between gap-1 mb-4">
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight text-gray-900" data-testid="text-voice-title">Talk to SahAI</h1>
+            <p className="text-sm text-gray-600 mt-0.5">Your health conversation assistant</p>
+          </div>
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-2">
             <Volume2 className="w-3.5 h-3.5 text-muted-foreground" />
@@ -341,7 +342,7 @@ export default function Voice() {
         ))}
       </div>
 
-      <Card className="glass flex-1 flex flex-col min-h-0">
+      <Card className="bg-white shadow-lg border border-gray-200 flex-1 flex flex-col min-h-0">
         <ScrollArea className="flex-1 p-4" ref={scrollRef}>
           <div className="space-y-4">
             {messages.map(msg => (
@@ -524,6 +525,7 @@ export default function Voice() {
           </div>
         </DialogContent>
       </Dialog>
+    </div>
     </div>
   );
 }

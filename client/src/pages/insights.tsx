@@ -96,14 +96,15 @@ export default function Insights() {
   }
 
   return (
-    <div className="space-y-5 animate-fade-in">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight text-gradient" data-testid="text-insights-title">Insights & Summaries</h1>
-        <p className="text-sm text-muted-foreground mt-1">Your health at a glance</p>
-      </div>
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 -m-6 p-6">
+      <div className="space-y-5 animate-fade-in">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight text-gray-900" data-testid="text-insights-title">Insights & Summaries</h1>
+          <p className="text-sm text-gray-600 mt-1">Your health at a glance</p>
+        </div>
 
       {/* AI Learning Insights */}
-      <Card className="card-elevated bg-gradient-to-br from-violet-50 to-purple-50 dark:from-violet-950/20 dark:to-purple-950/20 border-violet-200 dark:border-violet-800" data-testid="card-ai-insights">
+      <Card className="bg-white shadow-lg border border-gray-200 bg-gradient-to-br from-violet-50 to-purple-50 dark:from-violet-950/20 dark:to-purple-950/20 border-violet-200 dark:border-violet-800" data-testid="card-ai-insights">
         <CardHeader className="pb-2">
           <div className="flex items-center gap-2">
             <Brain className="w-4 h-4 text-violet-600 dark:text-violet-400" />
@@ -206,7 +207,7 @@ export default function Insights() {
       </Card>
 
       {/* Workout Summary */}
-      <Card className="card-elevated bg-gradient-to-br from-blue-50 to-cyan-50 dark:from-blue-950/20 dark:to-cyan-950/20 border-blue-200 dark:border-blue-800" data-testid="card-workout-summary">
+      <Card className="bg-white shadow-lg border border-gray-200 bg-gradient-to-br from-blue-50 to-cyan-50 dark:from-blue-950/20 dark:to-cyan-950/20 border-blue-200 dark:border-blue-800" data-testid="card-workout-summary">
         <CardHeader className="pb-2">
           <div className="flex items-center gap-2">
             <Activity className="w-4 h-4 text-blue-600 dark:text-blue-400" />
@@ -291,7 +292,7 @@ export default function Insights() {
       </Card>
 
       {/* BMI Calculator */}
-      <Card className="card-elevated bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-950/20 dark:to-pink-950/20 border-purple-200 dark:border-purple-800" data-testid="card-bmi-calculator">
+      <Card className="bg-white shadow-lg border border-gray-200 bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-950/20 dark:to-pink-950/20 border-purple-200 dark:border-purple-800" data-testid="card-bmi-calculator">
         <CardHeader className="pb-2">
           <div className="flex items-center gap-2">
             <Calculator className="w-4 h-4 text-purple-600 dark:text-purple-400" />
@@ -344,7 +345,7 @@ export default function Insights() {
       </Card>
 
       {/* Last Meal & Calories */}
-      <Card className="card-elevated bg-gradient-to-br from-orange-50 to-red-50 dark:from-orange-950/20 dark:to-red-950/20 border-orange-200 dark:border-orange-800" data-testid="card-nutrition">
+      <Card className="bg-white shadow-lg border border-gray-200 bg-gradient-to-br from-orange-50 to-red-50 dark:from-orange-950/20 dark:to-red-950/20 border-orange-200 dark:border-orange-800" data-testid="card-nutrition">
         <CardHeader className="pb-2">
           <div className="flex items-center gap-2">
             <UtensilsCrossed className="w-4 h-4 text-orange-600 dark:text-orange-400" />
@@ -390,7 +391,7 @@ export default function Insights() {
         </CardContent>
       </Card>
 
-      <Card className="card-elevated bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-950/20 dark:to-orange-950/20 border-amber-200 dark:border-amber-800" data-testid="card-morning-briefing">
+      <Card className="bg-white shadow-lg border border-gray-200 bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-950/20 dark:to-orange-950/20 border-amber-200 dark:border-amber-800" data-testid="card-morning-briefing">
         <CardHeader className="pb-2">
           <div className="flex items-center gap-2">
             <Sun className="w-4 h-4 text-amber-600 dark:text-amber-400" />
@@ -420,7 +421,7 @@ export default function Insights() {
         </CardContent>
       </Card>
 
-      <Card className="card-elevated bg-gradient-to-br from-indigo-50 to-violet-50 dark:from-indigo-950/20 dark:to-violet-950/20 border-indigo-200 dark:border-indigo-800" data-testid="card-evening-summary">
+      <Card className="bg-white shadow-lg border border-gray-200 bg-gradient-to-br from-indigo-50 to-violet-50 dark:from-indigo-950/20 dark:to-violet-950/20 border-indigo-200 dark:border-indigo-800" data-testid="card-evening-summary">
         <CardHeader className="pb-2">
           <div className="flex items-center gap-2">
             <Moon className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
@@ -454,7 +455,7 @@ export default function Insights() {
         </CardContent>
       </Card>
 
-      <Card className="card-elevated" data-testid="card-weekly-summary">
+      <Card className="bg-white shadow-lg border border-gray-200" data-testid="card-weekly-summary">
         <CardHeader className="pb-2">
           <div className="flex items-center justify-between gap-1">
             <div className="flex items-center gap-2">
@@ -488,7 +489,7 @@ export default function Insights() {
         </CardContent>
       </Card>
 
-      <Card className="card-elevated bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-emerald-950/20 dark:to-teal-950/20 border-emerald-200 dark:border-emerald-800" data-testid="card-doctor-prep">
+      <Card className="bg-white shadow-lg border border-gray-200 bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-emerald-950/20 dark:to-teal-950/20 border-emerald-200 dark:border-emerald-800" data-testid="card-doctor-prep">
         <CardHeader className="pb-2">
           <div className="flex items-center justify-between gap-1">
             <div className="flex items-center gap-2">
@@ -505,6 +506,7 @@ export default function Insights() {
           )}
         </CardContent>
       </Card>
+      </div>
     </div>
   );
 }

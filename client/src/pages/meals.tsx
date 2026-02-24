@@ -207,14 +207,15 @@ export default function Meals() {
   const isOverGoal = estimatedCalories > calorieGoal;
 
   return (
-    <div className="space-y-5 animate-fade-in">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight text-gradient" data-testid="text-meals-title">Meals & Nutrition</h1>
-        <p className="text-sm text-muted-foreground mt-1">Track your meals and hydration</p>
-      </div>
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 -m-6 p-6">
+      <div className="space-y-5 animate-fade-in">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight text-gray-900" data-testid="text-meals-title">Meals & Nutrition</h1>
+          <p className="text-sm text-gray-600 mt-1">Track your meals and hydration</p>
+        </div>
 
       {/* Calorie Goal Card */}
-      <Card className="card-elevated" data-testid="card-calorie-goal">
+      <Card className="bg-white shadow-lg border border-gray-200" data-testid="card-calorie-goal">
         <CardContent className="p-4 space-y-3">
           <div className="flex items-center justify-between">
             <div>
@@ -264,7 +265,7 @@ export default function Meals() {
         </CardContent>
       </Card>
 
-      <Card className="card-elevated" data-testid="card-nutrition-summary">
+      <Card className="bg-white shadow-lg border border-gray-200" data-testid="card-nutrition-summary">
         <CardHeader className="pb-2">
           <CardTitle className="text-sm font-semibold">Today's Nutrition</CardTitle>
         </CardHeader>
@@ -432,7 +433,7 @@ export default function Meals() {
       </Card>
 
       {/* Quick Log Section */}
-      <Card className="card-elevated bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-emerald-950/20 dark:to-teal-950/20 border-emerald-200 dark:border-emerald-800" data-testid="card-quick-log">
+      <Card className="bg-white shadow-lg border border-gray-200 bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-emerald-950/20 dark:to-teal-950/20 border-emerald-200 dark:border-emerald-800" data-testid="card-quick-log">
         <CardHeader className="pb-2">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
@@ -593,7 +594,7 @@ export default function Meals() {
               const meal = todayMealsData.find((m: any) => m.mealType === mealType);
               const Icon = mealIcons[mealType] || UtensilsCrossed;
               return (
-                <Card key={mealType} className="card-elevated" data-testid={`card-meal-${mealType}`}>
+                <Card key={mealType} className="bg-white shadow-lg border border-gray-200" data-testid={`card-meal-${mealType}`}>
                   <CardContent className="p-4">
                     <div className="flex items-start gap-3">
                       <div className={`w-10 h-10 rounded-md flex items-center justify-center flex-shrink-0 ${mealColors[mealType]}`}>
@@ -713,7 +714,7 @@ export default function Meals() {
 
       <div>
         <h2 className="text-sm font-semibold mb-3 text-muted-foreground uppercase tracking-wider flex items-center gap-2"><span className="w-1 h-4 rounded-full bg-primary inline-block" />Meal Photo Analysis</h2>
-        <Card className="animate-slide-up" data-testid="card-photo-analysis">
+        <Card className="animate-slide-up bg-white shadow-lg border border-gray-200" data-testid="card-photo-analysis">
           <CardContent className="p-4 space-y-4">
             <input
               type="file"
@@ -953,7 +954,7 @@ export default function Meals() {
         </Card>
       </div>
 
-      <Card data-testid="card-med-link">
+      <Card data-testid="card-med-link" className="bg-white shadow-lg border border-gray-200">
         <CardContent className="p-4">
           <div className="flex items-start gap-3">
             <Pill className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
@@ -967,7 +968,7 @@ export default function Meals() {
         </CardContent>
       </Card>
 
-      <Card className="glass bg-sky-50/50 dark:bg-sky-950/10 border-sky-200 dark:border-sky-800" data-testid="card-hydration-nudge">
+      <Card className="bg-white shadow-lg border border-gray-200 bg-sky-50/50 dark:bg-sky-950/10 border-sky-200 dark:border-sky-800" data-testid="card-hydration-nudge">
         <CardContent className="p-4">
           <div className="flex items-start gap-3">
             <Droplets className="w-5 h-5 text-sky-500 mt-0.5 flex-shrink-0" />
@@ -980,6 +981,7 @@ export default function Meals() {
           </div>
         </CardContent>
       </Card>
+      </div>
     </div>
   );
 }

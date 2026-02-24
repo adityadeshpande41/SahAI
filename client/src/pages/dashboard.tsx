@@ -90,11 +90,6 @@ export default function Dashboard() {
   const { data: adherence } = useMedicationAdherence();
   const { data: userData, isLoading: userLoading, isFetching: userFetching } = useCurrentUser();
   
-  // Debug logging
-  console.log("Dashboard user data:", userData);
-  console.log("Dashboard user loading:", userLoading, "fetching:", userFetching);
-  
-  // Handle both response formats: { user: {...} } or direct user object
   const user = userData?.user || userData;
 
   // Mutations
@@ -189,53 +184,50 @@ export default function Dashboard() {
     <div className="space-y-5 animate-fade-in">
       <div className="flex items-end justify-between gap-2">
         <div className="flex flex-col gap-0.5">
-          <h1 className="text-2xl font-bold tracking-tight" data-testid="text-greeting">
-            {getGreeting()}, <span className="text-gradient">{user?.name || "User"}</span>
+          <h1 className="text-3xl font-bold tracking-tight text-gray-900" data-testid="text-greeting">
+            {getGreeting()}, <span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">{user?.name || "User"}!</span>
           </h1>
-          <p className="text-sm text-muted-foreground" data-testid="text-date">{getCurrentDate()}</p>
+          <p className="text-sm text-gray-600 flex items-center gap-2" data-testid="text-date">
+            {getCurrentDate()}
+            <span className="flex items-center gap-1 text-emerald-600">
+              <div className="w-2 h-2 rounded-full bg-emerald-500"></div>
+              On Routine
+            </span>
+          </p>
         </div>
-        <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-muted/60 text-xs text-muted-foreground">
-          <CloudSun className="w-3.5 h-3.5 text-amber-500" />
+        <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-gradient-to-r from-orange-50 to-amber-50 border border-orange-200 text-sm font-medium text-orange-700">
+          <CloudSun className="w-4 h-4" />
           <span>{weather?.temp || "32°C"}</span>
         </div>
       </div>
 
-      <Card className="relative overflow-hidden border-0 card-elevated" data-testid="card-twin">
-        <div className="absolute inset-0 bg-gradient-to-br from-primary/6 via-transparent to-primary/4 dark:from-primary/10 dark:via-transparent dark:to-primary/8" />
-        <div className={`absolute top-0 right-0 w-40 h-40 bg-gradient-radial ${config.glow} to-transparent opacity-60 blur-2xl`} />
-        <CardContent className="relative p-5">
+      <Card className="relative overflow-hidden border-0 bg-white shadow-lg" data-testid="card-twin">
+        <CardContent className="relative p-6">
           <div className="flex items-start gap-4">
             <div className="relative flex-shrink-0">
-              <div className="relative w-16 h-16">
-                <div className="absolute inset-0 rounded-2xl bg-primary/10 dark:bg-primary/20 animate-gentle-pulse" />
-                <div className="absolute inset-0 rounded-2xl bg-primary/5 animate-pulse-ring" />
-                <div className="relative w-full h-full rounded-2xl bg-gradient-to-br from-primary/20 to-primary/5 dark:from-primary/30 dark:to-primary/10 flex items-center justify-center">
-                  <Heart className="w-7 h-7 text-primary" />
-                </div>
-                <div className="absolute w-3 h-3 rounded-full bg-primary/40 animate-orbit" style={{ top: "50%", left: "50%", marginTop: "-6px", marginLeft: "-6px" }}>
-                  <Zap className="w-3 h-3 text-primary" />
-                </div>
+              <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-cyan-400 to-teal-500 flex items-center justify-center shadow-md">
+                <Heart className="w-8 h-8 text-white" />
               </div>
-              <div className={`absolute -bottom-1 -right-1 w-4 h-4 rounded-full ${config.color} ring-2 ring-card shadow-sm`} />
+              <div className="absolute -bottom-1 -right-1 w-4 h-4 rounded-full bg-emerald-500 ring-2 ring-white shadow-sm" />
             </div>
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 flex-wrap mb-1">
-                <h2 className="font-bold text-base">Your Routine Twin</h2>
-                <Badge variant="secondary" className={`text-[10px] no-default-active-elevate ${config.textColor} px-2`}>
-                  {config.label}
+                <h2 className="font-bold text-lg text-gray-900">You're following your usual routine</h2>
+                <Badge variant="secondary" className="text-xs bg-emerald-100 text-emerald-700 border-emerald-200 px-2">
+                  On Routine
                 </Badge>
               </div>
-              <p className="text-sm text-muted-foreground leading-relaxed" data-testid="text-twin-status">
+              <p className="text-sm text-gray-600 leading-relaxed mb-3" data-testid="text-twin-status">
                 {twinState?.message || "Loading..."}
               </p>
-              <div className="mt-3 flex items-center gap-2.5">
-                <div className="flex-1 h-2.5 rounded-full bg-muted/80 overflow-hidden">
+              <div className="flex items-center gap-2.5">
+                <div className="flex-1 h-3 rounded-full bg-gray-100 overflow-hidden">
                   <div
-                    className="h-full rounded-full bg-gradient-to-r from-primary to-primary/70 transition-all duration-1000 ease-out"
+                    className="h-full rounded-full bg-gradient-to-r from-cyan-400 to-emerald-400 transition-all duration-1000 ease-out"
                     style={{ width: `${twinState?.score || 0}%` }}
                   />
                 </div>
-                <span className="text-xs font-bold text-primary tabular-nums">{twinState?.score || 0}%</span>
+                <span className="text-sm font-bold text-gray-900 tabular-nums">{twinState?.score || 0}%</span>
               </div>
             </div>
           </div>
@@ -243,17 +235,24 @@ export default function Dashboard() {
       </Card>
 
       <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1 scrollbar-hide" data-testid="status-chips">
-        {/* Status chips would come from context API - using simplified version for now */}
-        <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap bg-sky-100/80 text-sky-800 dark:bg-sky-900/30 dark:text-sky-300 border border-sky-200/50 dark:border-sky-800/30 shadow-sm">
-          <Home className="w-3.5 h-3.5" />
-          {context?.locationState || "At home"}
+        <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap bg-amber-50 border border-amber-200 text-amber-700 shadow-sm">
+          <span>🏠</span>
+          {context?.locationState || "home"}
         </div>
         {weather && (
-          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap bg-amber-100/80 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300 border border-amber-200/50 dark:border-amber-800/30 shadow-sm">
-            <CloudSun className="w-3.5 h-3.5" />
-            {weather.condition}
+          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap bg-orange-50 border border-orange-200 text-orange-700 shadow-sm">
+            <span>☀️</span>
+            {weather.condition || "Warm & Humid"}
           </div>
         )}
+        <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap bg-blue-50 border border-blue-200 text-blue-700 shadow-sm">
+          <span>🌡️</span>
+          {weather?.temp || "32°C"}
+        </div>
+        <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap bg-gray-100 border border-gray-200 text-gray-700 shadow-sm">
+          <span>📊</span>
+          2h 45 min
+        </div>
       </div>
 
       <div>
@@ -296,7 +295,7 @@ export default function Dashboard() {
         </div>
       </div>
 
-      <Card className={`border ${risk.border} ${risk.bg} card-elevated`} data-testid="card-risk">
+      <Card className={`border bg-white shadow-lg`} data-testid="card-risk">
         <CardHeader className="pb-2">
           <div className="flex items-center justify-between gap-1">
             <div className="flex items-center gap-2">
@@ -357,18 +356,18 @@ export default function Dashboard() {
 
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5" data-testid="card-context-snapshot">
         {[
-          { icon: Home, label: context?.locationState || "Home", color: "text-emerald-500", bg: "bg-emerald-50 dark:bg-emerald-950/20" },
-          { icon: CloudSun, label: weather?.condition || "Loading...", color: "text-amber-500", bg: "bg-amber-50 dark:bg-amber-950/20" },
-          { icon: Activity, label: context?.currentActivity || "Resting", color: "text-sky-500", bg: "bg-sky-50 dark:bg-sky-950/20" },
+          { icon: Home, label: context?.locationState || "Home", color: "text-emerald-500", bg: "bg-white" },
+          { icon: CloudSun, label: weather?.condition || "Loading...", color: "text-amber-500", bg: "bg-white" },
+          { icon: Activity, label: context?.currentActivity || "Resting", color: "text-sky-500", bg: "bg-white" },
         ].map(({ icon: Icon, label, color, bg }, i) => (
-          <div key={i} className={`flex items-center gap-2 p-3 rounded-xl ${bg} border border-border/30`}>
+          <div key={i} className={`flex items-center gap-2 p-3 rounded-xl ${bg} border border-gray-200 shadow-sm`}>
             <Icon className={`w-4 h-4 ${color} flex-shrink-0`} />
-            <span className="text-xs font-medium truncate">{label}</span>
+            <span className="text-xs font-medium truncate text-gray-900">{label}</span>
           </div>
         ))}
       </div>
 
-      <Card className="card-elevated" data-testid="card-weekly-snapshot">
+      <Card className="bg-white shadow-lg" data-testid="card-weekly-snapshot">
         <CardHeader className="pb-2">
           <div className="flex items-center justify-between gap-1">
             <div className="flex items-center gap-2">
@@ -389,7 +388,7 @@ export default function Dashboard() {
               { value: `${adherence?.week?.taken || 0}/${adherence?.week?.total || 0}`, label: "Meals Logged", color: "text-amber-600 dark:text-amber-400" },
               { value: "0", label: "Symptoms", color: "text-red-500 dark:text-red-400" },
             ].map(({ value, label, color }, i) => (
-              <div key={i} className="text-center p-3 rounded-xl bg-muted/40">
+              <div key={i} className="text-center p-3 rounded-xl bg-gray-50 border border-gray-200">
                 <p className={`text-xl font-bold ${color} tabular-nums`}>{value}</p>
                 <p className="text-[10px] text-muted-foreground mt-0.5 font-medium">{label}</p>
               </div>

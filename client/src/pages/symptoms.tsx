@@ -66,15 +66,16 @@ export default function Symptoms() {
   const severityColors = ["", "text-emerald-600 dark:text-emerald-400", "text-emerald-600 dark:text-emerald-400", "text-amber-600 dark:text-amber-400", "text-orange-600 dark:text-orange-400", "text-red-600 dark:text-red-400"];
 
   return (
-    <div className="space-y-5 animate-fade-in">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight text-gradient" data-testid="text-symptoms-title">Symptoms & Activity</h1>
-        <p className="text-sm text-muted-foreground mt-1">Log how you're feeling and what you're doing</p>
-      </div>
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 -m-6 p-6">
+      <div className="space-y-5 animate-fade-in">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight text-gray-900" data-testid="text-symptoms-title">Symptoms & Activity</h1>
+          <p className="text-sm text-gray-600 mt-1">Log how you're feeling and what you're doing</p>
+        </div>
 
       <div>
         <h2 className="text-sm font-semibold mb-3 text-muted-foreground uppercase tracking-wider flex items-center gap-2"><span className="w-1 h-4 rounded-full bg-primary inline-block" />Log a Symptom</h2>
-        <Card className="card-elevated" data-testid="card-log-symptom">
+        <Card className="bg-white shadow-lg border border-gray-200" data-testid="card-log-symptom">
           <CardContent className="p-4 space-y-4">
             <div className="flex flex-wrap gap-2">
               {symptomQuickOptions.map(s => (
@@ -133,7 +134,7 @@ export default function Symptoms() {
 
       <div>
         <h2 className="text-sm font-semibold mb-3 text-muted-foreground uppercase tracking-wider flex items-center gap-2"><span className="w-1 h-4 rounded-full bg-primary inline-block" />Current Activity</h2>
-        <Card className="card-elevated" data-testid="card-activity">
+        <Card className="bg-white shadow-lg border border-gray-200" data-testid="card-activity">
           <CardContent className="p-4">
             <div className="flex items-center gap-3 mb-3">
               <div className="w-10 h-10 rounded-md bg-primary/10 dark:bg-primary/20 flex items-center justify-center">
@@ -166,7 +167,7 @@ export default function Symptoms() {
         </Card>
       </div>
 
-      <Card className="card-elevated bg-gradient-to-br from-amber-50/80 to-orange-50/50 dark:from-amber-950/20 dark:to-orange-950/10 border-amber-200 dark:border-amber-800" data-testid="card-pattern-insight">
+      <Card className="bg-white shadow-lg border border-gray-200 bg-gradient-to-br from-amber-50/80 to-orange-50/50 dark:from-amber-950/20 dark:to-orange-950/10 border-amber-200 dark:border-amber-800" data-testid="card-pattern-insight">
         <CardContent className="p-4">
           <div className="flex items-start gap-3">
             <TrendingUp className="w-5 h-5 text-amber-600 dark:text-amber-400 mt-0.5 flex-shrink-0" />
@@ -234,6 +235,7 @@ export default function Symptoms() {
         ) : (
           <p className="text-sm text-muted-foreground text-center py-4">No activities logged yet</p>
         )}
+      </div>
       </div>
     </div>
   );
