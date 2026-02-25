@@ -35,25 +35,25 @@ import * as api from "@/lib/api-client";
 
 const languages = [
   "English",
-  "Spanish (Español)",
-  "French (Français)",
-  "German (Deutsch)",
-  "Italian (Italiano)",
-  "Portuguese (Português)",
-  "Russian (Русский)",
-  "Mandarin (中文)",
-  "Japanese (日本語)",
-  "Korean (한국어)",
-  "Arabic (العربية)",
-  "Hindi (हिन्दी)",
-  "Bengali (বাংলা)",
-  "Tamil (தமிழ்)",
-  "Telugu (తెలుగు)",
-  "Marathi (मराठी)",
-  "Gujarati (ગુજરાતી)",
-  "Kannada (ಕನ್ನಡ)",
-  "Malayalam (മലയാളം)",
-  "Punjabi (ਪੰਜਾਬੀ)",
+  "Spanish",
+  "French",
+  "German",
+  "Italian",
+  "Portuguese",
+  "Russian",
+  "Mandarin",
+  "Japanese",
+  "Korean",
+  "Arabic",
+  "Hindi",
+  "Bengali",
+  "Tamil",
+  "Telugu",
+  "Marathi",
+  "Gujarati",
+  "Kannada",
+  "Malayalam",
+  "Punjabi",
 ];
 const ageGroups = ["18-24", "25-34", "35-44", "45-54", "55-64", "65-74", "75+"];
 
@@ -1090,7 +1090,6 @@ export default function Settings() {
           data-testid="button-reset"
         >
           <RefreshCw className="w-4 h-4 mr-1" /> Reset All
-        
         </Button>
       </div>
     </div>

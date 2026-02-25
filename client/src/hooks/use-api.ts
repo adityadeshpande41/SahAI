@@ -673,6 +673,7 @@ export function useUpdateUserProfile() {
       
       // Invalidate queries to force refetch with fresh data
       queryClient.invalidateQueries({ queryKey: ["user"] });
+      queryClient.invalidateQueries({ queryKey: ["user", "me"] });
       queryClient.invalidateQueries({ queryKey: ["weather"] });
       
       console.log("Cache invalidated, will refetch fresh data");

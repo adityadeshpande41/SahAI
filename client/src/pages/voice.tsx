@@ -45,6 +45,14 @@ const quickPrompts = [
 const languages = [
   { code: "en", name: "English", flag: "🇬🇧" },
   { code: "hi", name: "Hindi", flag: "🇮🇳" },
+  { code: "mr", name: "Marathi", flag: "🇮🇳" },
+  { code: "ta", name: "Tamil", flag: "🇮🇳" },
+  { code: "te", name: "Telugu", flag: "🇮🇳" },
+  { code: "bn", name: "Bengali", flag: "🇮🇳" },
+  { code: "gu", name: "Gujarati", flag: "🇮🇳" },
+  { code: "kn", name: "Kannada", flag: "🇮🇳" },
+  { code: "ml", name: "Malayalam", flag: "🇮🇳" },
+  { code: "pa", name: "Punjabi", flag: "🇮🇳" },
   { code: "es", name: "Spanish", flag: "🇪🇸" },
   { code: "fr", name: "French", flag: "🇫🇷" },
   { code: "de", name: "German", flag: "🇩🇪" },
@@ -78,7 +86,6 @@ export default function Voice() {
   const [pushToTalk, setPushToTalk] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [showLanguageDialog, setShowLanguageDialog] = useState(false);
-  const [hasGreeted, setHasGreeted] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const { toast } = useToast();
@@ -122,9 +129,7 @@ export default function Voice() {
 
   // Auto-greeting when page loads
   useEffect(() => {
-    if (!hasGreeted && !isLoading && user && autoSpeak) {
-      setHasGreeted(true);
-      
+    if (!isLoading && user && autoSpeak) {
       // Wait a moment for the page to settle
       const timer = setTimeout(() => {
         const greetings: Record<string, string> = {
@@ -150,7 +155,7 @@ export default function Voice() {
       
       return () => clearTimeout(timer);
     }
-  }, [hasGreeted, isLoading, user, autoSpeak, userLanguage]);
+  }, [isLoading, user, autoSpeak, userLanguage]);
 
   const sendMessage = async (text: string) => {
     if (!text.trim()) return;
@@ -566,12 +571,12 @@ export default function Voice() {
               </Button>
             ))}
           </div>
-          <div className="mt-4 p-3 rounded-lg bg-muted/50 border border-border">
-            <p className="text-xs text-muted-foreground">
-              Your preferred language: <span className="font-medium text-foreground">{userLanguage}</span>
+          <div className="mt-4 p-3 rounded-lg bg-sky-50 dark:bg-sky-950/20 border border-sky-200 dark:border-sky-800">
+            <p className="text-xs text-sky-700 dark:text-sky-300">
+              <strong>Your preferred language:</strong> <span className="font-medium">{userLanguage}</span>
             </p>
-            <p className="text-xs text-muted-foreground mt-1">
-              You can change this in Settings
+            <p className="text-xs text-sky-600 dark:text-sky-400 mt-1">
+              💡 This translates the last message only. To change your default language permanently, go to Settings → User Profile.
             </p>
           </div>
         </DialogContent>
