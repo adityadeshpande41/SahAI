@@ -333,31 +333,34 @@ export default function Medications() {
       </div>
 
       {/* Learn with AI Card */}
-      {meds && meds.schedule && meds.schedule.length > 0 && (
-        <Card className="card-elevated bg-gradient-to-r from-purple-50 to-indigo-50 dark:from-purple-950/20 dark:to-indigo-950/20 border-purple-200 dark:border-purple-800" data-testid="card-learn-ai-medication">
-          <CardContent className="p-4 space-y-3">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Sparkles className="w-5 h-5 text-purple-600 dark:text-purple-400" />
-                <h3 className="font-semibold text-sm">Learn with AI</h3>
-              </div>
-              <Button
-                size="sm"
-                variant="secondary"
-                onClick={() => {
+      <Card className="card-elevated bg-gradient-to-r from-purple-50 to-indigo-50 dark:from-purple-950/20 dark:to-indigo-950/20 border-purple-200 dark:border-purple-800" data-testid="card-learn-ai-medication">
+        <CardContent className="p-4 space-y-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Sparkles className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+              <h3 className="font-semibold text-sm">Learn with AI</h3>
+            </div>
+            <Button
+              size="sm"
+              variant="secondary"
+              onClick={() => {
+                if (meds?.schedule && meds.schedule.length > 0) {
                   const firstMed = meds.schedule[0];
                   learnWithAI(firstMed.name);
-                }}
-                disabled={loadingInsights}
-                data-testid="button-learn-ai-medication"
-              >
-                {loadingInsights ? (
-                  <><Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" /> Analyzing...</>
-                ) : (
-                  <><Sparkles className="w-3.5 h-3.5 mr-1" /> Get Insights</>
-                )}
-              </Button>
-            </div>
+                } else {
+                  learnWithAI("Aspirin");
+                }
+              }}
+              disabled={loadingInsights}
+              data-testid="button-learn-ai-medication"
+            >
+              {loadingInsights ? (
+                <><Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" /> Analyzing...</>
+              ) : (
+                <><Sparkles className="w-3.5 h-3.5 mr-1" /> Get Insights</>
+              )}
+            </Button>
+          </div>
             
             {aiInsights && (
               <div className="space-y-3 animate-slide-up">
@@ -387,12 +390,13 @@ export default function Medications() {
             
             {!aiInsights && !loadingInsights && (
               <p className="text-xs text-muted-foreground">
-                Get AI-powered insights about your medication to understand how it works and when to take it for best results.
+                {meds?.schedule && meds.schedule.length > 0
+                  ? "Get AI-powered insights about your medication to understand how it works and when to take it for best results."
+                  : "Get AI-powered insights about medications to understand how they work and when to take them. Add your medications above to get started!"}
               </p>
             )}
           </CardContent>
         </Card>
-      )}
 
       <Card data-testid="card-med-explanation">
         <CardHeader className="pb-2">

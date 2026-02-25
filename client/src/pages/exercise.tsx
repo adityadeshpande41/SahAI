@@ -490,31 +490,34 @@ export default function Exercise() {
       </div>
 
       {/* Learn with AI Card */}
-      {todayActivities.length > 0 && (
-        <Card className="card-elevated bg-gradient-to-r from-purple-50 to-indigo-50 dark:from-purple-950/20 dark:to-indigo-950/20 border-purple-200 dark:border-purple-800" data-testid="card-learn-ai-exercise">
-          <CardContent className="p-4 space-y-3">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Sparkles className="w-5 h-5 text-purple-600 dark:text-purple-400" />
-                <h3 className="font-semibold text-sm">Learn with AI</h3>
-              </div>
-              <Button
-                size="sm"
-                variant="secondary"
-                onClick={() => {
+      <Card className="card-elevated bg-gradient-to-r from-purple-50 to-indigo-50 dark:from-purple-950/20 dark:to-indigo-950/20 border-purple-200 dark:border-purple-800" data-testid="card-learn-ai-exercise">
+        <CardContent className="p-4 space-y-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Sparkles className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+              <h3 className="font-semibold text-sm">Learn with AI</h3>
+            </div>
+            <Button
+              size="sm"
+              variant="secondary"
+              onClick={() => {
+                if (todayActivities.length > 0) {
                   const lastActivity = todayActivities[0];
                   learnWithAI(lastActivity.activity, lastActivity.duration);
-                }}
-                disabled={loadingInsights}
-                data-testid="button-learn-ai-exercise"
-              >
-                {loadingInsights ? (
-                  <><Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" /> Analyzing...</>
-                ) : (
-                  <><Sparkles className="w-3.5 h-3.5 mr-1" /> Get Insights</>
-                )}
-              </Button>
-            </div>
+                } else {
+                  learnWithAI("Walking", 30);
+                }
+              }}
+              disabled={loadingInsights}
+              data-testid="button-learn-ai-exercise"
+            >
+              {loadingInsights ? (
+                <><Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" /> Analyzing...</>
+              ) : (
+                <><Sparkles className="w-3.5 h-3.5 mr-1" /> Get Insights</>
+              )}
+            </Button>
+          </div>
             
             {aiInsights && (
               <div className="space-y-3 animate-slide-up">
@@ -544,12 +547,13 @@ export default function Exercise() {
             
             {!aiInsights && !loadingInsights && (
               <p className="text-xs text-muted-foreground">
-                Get AI-powered insights on your last activity to optimize your exercise routine and stay safe.
+                {todayActivities.length > 0 
+                  ? "Get AI-powered insights on your last activity to optimize your exercise routine and stay safe."
+                  : "Get AI-powered insights about exercises to optimize your routine and stay safe. Start by logging an activity above!"}
               </p>
             )}
           </CardContent>
         </Card>
-      )}
 
       {/* Health Tip */}
       <Card className="card-elevated bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-950/20 dark:to-indigo-950/20 border-blue-200 dark:border-blue-800">

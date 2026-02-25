@@ -1148,31 +1148,34 @@ export default function Meals() {
       </div>
 
       {/* Learn with AI Card */}
-      {meals && meals.meals && meals.meals.length > 0 && (
-        <Card className="card-elevated bg-gradient-to-r from-purple-50 to-indigo-50 dark:from-purple-950/20 dark:to-indigo-950/20 border-purple-200 dark:border-purple-800" data-testid="card-learn-ai">
-          <CardContent className="p-4 space-y-3">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Sparkles className="w-5 h-5 text-purple-600 dark:text-purple-400" />
-                <h3 className="font-semibold text-sm">Learn with AI</h3>
-              </div>
-              <Button
-                size="sm"
-                variant="secondary"
-                onClick={() => {
+      <Card className="card-elevated bg-gradient-to-r from-purple-50 to-indigo-50 dark:from-purple-950/20 dark:to-indigo-950/20 border-purple-200 dark:border-purple-800" data-testid="card-learn-ai">
+        <CardContent className="p-4 space-y-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Sparkles className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+              <h3 className="font-semibold text-sm">Learn with AI</h3>
+            </div>
+            <Button
+              size="sm"
+              variant="secondary"
+              onClick={() => {
+                if (meals?.meals && meals.meals.length > 0) {
                   const lastMeal = meals.meals[0];
                   learnWithAI(lastMeal.foods, lastMeal.mealType, lastMeal.estimatedCalories);
-                }}
-                disabled={loadingInsights}
-                data-testid="button-learn-ai"
-              >
-                {loadingInsights ? (
-                  <><Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" /> Analyzing...</>
-                ) : (
-                  <><Sparkles className="w-3.5 h-3.5 mr-1" /> Get Insights</>
-                )}
-              </Button>
-            </div>
+                } else {
+                  learnWithAI("Chicken salad with vegetables", "lunch", 350);
+                }
+              }}
+              disabled={loadingInsights}
+              data-testid="button-learn-ai"
+            >
+              {loadingInsights ? (
+                <><Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" /> Analyzing...</>
+              ) : (
+                <><Sparkles className="w-3.5 h-3.5 mr-1" /> Get Insights</>
+              )}
+            </Button>
+          </div>
             
             {aiInsights && (
               <div className="space-y-3 animate-slide-up">
@@ -1202,12 +1205,13 @@ export default function Meals() {
             
             {!aiInsights && !loadingInsights && (
               <p className="text-xs text-muted-foreground">
-                Get AI-powered insights on your last meal to improve nutrition and achieve better macro balance.
+                {meals && meals.meals && meals.meals.length > 0 
+                  ? "Get AI-powered insights on your last meal to improve nutrition and achieve better macro balance."
+                  : "Log a meal first, then get AI-powered insights to improve your nutrition and achieve better macro balance."}
               </p>
             )}
           </CardContent>
         </Card>
-      )}
     </div>
   );
 }
