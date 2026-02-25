@@ -309,6 +309,19 @@ Tone: Warm, positive, reassuring. Focus on progress and positives. Keep it conve
     const emailResults = [];
     
     for (const caregiver of activeCaregivers) {
+      // Skip caregivers without email
+      if (!caregiver.email) {
+        this.log(`Skipping caregiver ${caregiver.name} - no email address`);
+        sentTo.push({
+          name: caregiver.name,
+          relationship: caregiver.relationship,
+          email: null,
+          sent: false,
+          error: 'No email address',
+        });
+        continue;
+      }
+
       // Generate HTML email
       const emailHtml = generateProgressUpdateEmail({
         userName: context.user.name || 'Your loved one',
@@ -327,6 +340,7 @@ Tone: Warm, positive, reassuring. Focus on progress and positives. Keep it conve
         to: caregiver.email || '',
         subject: update.subject || `Health Update from ${context.user.name}`,
         html: emailHtml,
+        from: 'SahAI <onboarding@resend.dev>', // Use Resend's test domain
       });
 
       emailResults.push(emailResult);
@@ -344,7 +358,13 @@ Tone: Warm, positive, reassuring. Focus on progress and positives. Keep it conve
         email: caregiver.email,
         sent: emailResult.success,
         messageId: emailResult.messageId,
+        error: emailResult.error,
       });
+
+      // Add delay to avoid rate limits (500ms between emails)
+      if (activeCaregivers.indexOf(caregiver) < activeCaregivers.length - 1) {
+        await new Promise(resolve => setTimeout(resolve, 500));
+      }
     }
 
     const successCount = emailResults.filter(r => r.success).length;
