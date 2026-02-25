@@ -35,7 +35,15 @@ export default function Caregiver() {
   const [isEditing, setIsEditing] = useState(false);
 
   // Load existing caregiver data
-  const existingCaregiver = caregivers?.[0];
+  const allCaregivers = caregivers || [];
+  
+  // Get only the most recent caregiver (filter duplicates)
+  const existingCaregiver = allCaregivers.length > 0 
+    ? allCaregivers.reduce((latest: any, current: any) => {
+        if (!latest) return current;
+        return new Date(current.createdAt) > new Date(latest.createdAt) ? current : latest;
+      }, null)
+    : null;
   
   const handleSave = async () => {
     if (!caregiverName || !caregiverEmail) {

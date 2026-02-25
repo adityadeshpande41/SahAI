@@ -258,6 +258,30 @@ Tone: Informative, balanced. Highlight both concerns and positives.`;
       };
     }
 
+    // Filter to unique emails only (keep most recent for each email)
+    const uniqueCaregivers = activeCaregivers.reduce((acc: any[], current: any) => {
+      if (!current.email) return acc; // Skip caregivers without email
+      
+      const existing = acc.find(c => c.email === current.email);
+      if (!existing) {
+        acc.push(current);
+      } else {
+        // Keep the most recent one
+        const existingIndex = acc.indexOf(existing);
+        if (new Date(current.createdAt) > new Date(existing.createdAt)) {
+          acc[existingIndex] = current;
+        }
+      }
+      return acc;
+    }, []);
+
+    if (uniqueCaregivers.length === 0) {
+      return {
+        success: false,
+        message: "No caregivers with valid email addresses found.",
+      };
+    }
+
     // Get today's data for progress update
     const todayMeds = await storage.getTodayMedications(context.user.id);
     const todayMeals = await storage.getTodayMeals(context.user.id);
@@ -304,24 +328,11 @@ Tone: Warm, positive, reassuring. Focus on progress and positives. Keep it conve
 
     const update = JSON.parse(response.choices[0].message.content);
 
-    // Send emails to all active caregivers
+    // Send emails to unique caregivers only
     const sentTo = [];
     const emailResults = [];
     
-    for (const caregiver of activeCaregivers) {
-      // Skip caregivers without email
-      if (!caregiver.email) {
-        this.log(`Skipping caregiver ${caregiver.name} - no email address`);
-        sentTo.push({
-          name: caregiver.name,
-          relationship: caregiver.relationship,
-          email: null,
-          sent: false,
-          error: 'No email address',
-        });
-        continue;
-      }
-
+    for (const caregiver of uniqueCaregivers) {
       // Generate HTML email
       const emailHtml = generateProgressUpdateEmail({
         userName: context.user.name || 'Your loved one',
@@ -337,7 +348,7 @@ Tone: Warm, positive, reassuring. Focus on progress and positives. Keep it conve
 
       // Send email
       const emailResult = await sendEmail({
-        to: caregiver.email || '',
+        to: caregiver.email,
         subject: update.subject || `Health Update from ${context.user.name}`,
         html: emailHtml,
         from: 'SahAI <onboarding@resend.dev>', // Use Resend's test domain
@@ -362,7 +373,7 @@ Tone: Warm, positive, reassuring. Focus on progress and positives. Keep it conve
       });
 
       // Add delay to avoid rate limits (500ms between emails)
-      if (activeCaregivers.indexOf(caregiver) < activeCaregivers.length - 1) {
+      if (uniqueCaregivers.indexOf(caregiver) < uniqueCaregivers.length - 1) {
         await new Promise(resolve => setTimeout(resolve, 500));
       }
     }
@@ -373,11 +384,11 @@ Tone: Warm, positive, reassuring. Focus on progress and positives. Keep it conve
       success: true,
       data: {
         sent: true,
-        recipientCount: activeCaregivers.length,
+        recipientCount: uniqueCaregivers.length,
         successCount,
         recipients: sentTo,
         update,
-        message: `Progress update sent to ${successCount}/${activeCaregivers.length} caregiver(s)`,
+        message: `Progress update sent to ${successCount}/${uniqueCaregivers.length} caregiver(s)`,
       },
     };
   }
