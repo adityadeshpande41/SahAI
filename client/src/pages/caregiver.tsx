@@ -28,7 +28,7 @@ export default function Caregiver() {
   const sendUpdate = useSendCaregiverUpdate();
   
   const [caregiverName, setCaregiverName] = useState("");
-  const [caregiverPhone, setCaregiverPhone] = useState("");
+  const [caregiverEmail, setCaregiverEmail] = useState("");
   const [caregiverRelation, setCaregiverRelation] = useState("");
   const [privacyLevel, setPrivacyLevel] = useState("daily");
   const [showAlert, setShowAlert] = useState(false);
@@ -38,10 +38,21 @@ export default function Caregiver() {
   const existingCaregiver = caregivers?.[0];
   
   const handleSave = async () => {
-    if (!caregiverName || !caregiverPhone) {
+    if (!caregiverName || !caregiverEmail) {
       toast({
         title: "Missing information",
-        description: "Please fill in name and phone number",
+        description: "Please fill in name and email address",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Basic email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(caregiverEmail)) {
+      toast({
+        title: "Invalid email",
+        description: "Please enter a valid email address",
         variant: "destructive",
       });
       return;
@@ -49,7 +60,7 @@ export default function Caregiver() {
 
     await createCaregiver.mutateAsync({
       name: caregiverName,
-      phone: caregiverPhone,
+      email: caregiverEmail,
       relationship: caregiverRelation,
       notificationPreferences: {
         level: privacyLevel,
@@ -74,7 +85,7 @@ export default function Caregiver() {
   useEffect(() => {
     if (existingCaregiver && !isEditing) {
       setCaregiverName(existingCaregiver.name || "");
-      setCaregiverPhone(existingCaregiver.phone || "");
+      setCaregiverEmail(existingCaregiver.email || "");
       setCaregiverRelation(existingCaregiver.relationship || "");
       setPrivacyLevel(existingCaregiver.notificationPreferences?.level || "daily");
     }
@@ -116,16 +127,17 @@ export default function Caregiver() {
             />
           </div>
           <div className="space-y-1.5">
-            <Label className="text-xs">Phone</Label>
+            <Label className="text-xs">Email</Label>
             <Input 
-              value={caregiverPhone} 
+              type="email"
+              value={caregiverEmail} 
               onChange={e => {
-                setCaregiverPhone(e.target.value);
+                setCaregiverEmail(e.target.value);
                 setIsEditing(true);
               }} 
               className="text-sm" 
-              data-testid="input-cg-phone" 
-              placeholder="+91 XXXXX XXXXX"
+              data-testid="input-cg-email" 
+              placeholder="caregiver@example.com"
             />
           </div>
           <div className="space-y-1.5">
@@ -218,6 +230,45 @@ export default function Caregiver() {
           <p className="text-xs text-muted-foreground">
             Share your health progress with your caregiver. They'll receive a summary of your medications, meals, and activities.
           </p>
+          
+          {sendUpdate.isSuccess && sendUpdate.data && (
+            <div className="animate-slide-up rounded-lg bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-800 p-4 space-y-3">
+              <div className="flex items-center gap-2">
+                <Check className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
+                <span className="font-semibold text-sm text-emerald-800 dark:text-emerald-300">Update Sent!</span>
+              </div>
+              <div className="space-y-2 text-sm">
+                <p className="text-emerald-700 dark:text-emerald-300">
+                  {sendUpdate.data.message || `Sent to ${sendUpdate.data.recipientCount} caregiver(s)`}
+                </p>
+                {sendUpdate.data.recipients && sendUpdate.data.recipients.length > 0 && (
+                  <div className="space-y-1">
+                    <p className="text-xs font-medium text-emerald-700 dark:text-emerald-300">Recipients:</p>
+                    {sendUpdate.data.recipients.map((recipient: any, idx: number) => (
+                      <div key={idx} className="flex items-center gap-2 text-xs text-emerald-600 dark:text-emerald-400">
+                        <User className="w-3 h-3" />
+                        <span>{recipient.name} ({recipient.relationship}) - {recipient.email}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {sendUpdate.data.update && (
+                  <div className="mt-3 p-3 rounded-md bg-white/60 dark:bg-black/20 space-y-2">
+                    <p className="text-xs font-semibold text-muted-foreground">Message Preview:</p>
+                    <p className="text-xs">{sendUpdate.data.update.mainMessage}</p>
+                    {sendUpdate.data.update.details && (
+                      <div className="space-y-1 text-xs text-muted-foreground">
+                        <p>• {sendUpdate.data.update.details.medications}</p>
+                        <p>• {sendUpdate.data.update.details.meals}</p>
+                        <p>• {sendUpdate.data.update.details.activities}</p>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+          
           <Button 
             onClick={() => sendUpdate.mutateAsync({})} 
             disabled={sendUpdate.isPending || !existingCaregiver}
@@ -266,7 +317,7 @@ export default function Caregiver() {
               </p>
               <div className="flex items-center gap-2 text-xs text-red-600 dark:text-red-400">
                 <Phone className="w-3.5 h-3.5" />
-                <span>Notification sent to {caregiverName || "caregiver"} at {caregiverPhone || "phone"}</span>
+                <span>Notification sent to {caregiverName || "caregiver"} at {caregiverEmail || "email"}</span>
               </div>
               <div className="flex items-center gap-2 pt-1">
                 <Button size="sm" variant="secondary" onClick={() => setShowAlert(false)}>Dismiss</Button>

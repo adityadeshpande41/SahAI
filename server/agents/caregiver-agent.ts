@@ -1,5 +1,6 @@
 import { BaseAgent, type AgentContext, type AgentResponse } from "./base-agent";
 import { storage } from "../storage";
+import { sendEmail, generateProgressUpdateEmail, generateAlertEmail } from "../lib/email-service";
 
 export class CaregiverAgent extends BaseAgent {
   constructor() {
@@ -272,6 +273,7 @@ Tone: Informative, balanced. Highlight both concerns and positives.`;
   "subject": "Progress Update from ${context.user.name}",
   "greeting": "Warm greeting",
   "mainMessage": "Main update message (2-3 sentences)",
+  "smsMessage": "Short SMS-friendly version (160 chars max)",
   "details": {
     "medications": "Medication status",
     "meals": "Meal status",
@@ -302,22 +304,60 @@ Tone: Warm, positive, reassuring. Focus on progress and positives. Keep it conve
 
     const update = JSON.parse(response.choices[0].message.content);
 
-    // Send to all active caregivers
+    // Send emails to all active caregivers
+    const sentTo = [];
+    const emailResults = [];
+    
     for (const caregiver of activeCaregivers) {
+      // Generate HTML email
+      const emailHtml = generateProgressUpdateEmail({
+        userName: context.user.name || 'Your loved one',
+        caregiverName: caregiver.name,
+        update,
+        todayStats: {
+          medications: { taken: medsTaken, total: todayMeds.length, adherence },
+          meals: todayMeals.length,
+          activities: recentActivities.length,
+          symptoms: recentSymptoms.length,
+        },
+      });
+
+      // Send email
+      const emailResult = await sendEmail({
+        to: caregiver.email || '',
+        subject: update.subject || `Health Update from ${context.user.name}`,
+        html: emailHtml,
+      });
+
+      emailResults.push(emailResult);
+
+      // Store notification
       await storage.createCaregiverNotification(caregiver.id, context.user.id, {
         notificationType: "summary",
         content: JSON.stringify(update),
-        sent: false,
+        sent: emailResult.success,
+      });
+      
+      sentTo.push({
+        name: caregiver.name,
+        relationship: caregiver.relationship,
+        email: caregiver.email,
+        sent: emailResult.success,
+        messageId: emailResult.messageId,
       });
     }
+
+    const successCount = emailResults.filter(r => r.success).length;
 
     return {
       success: true,
       data: {
         sent: true,
         recipientCount: activeCaregivers.length,
-        recipients: activeCaregivers.map(c => ({ name: c.name, relationship: c.relationship })),
+        successCount,
+        recipients: sentTo,
         update,
+        message: `Progress update sent to ${successCount}/${activeCaregivers.length} caregiver(s)`,
       },
     };
   }
