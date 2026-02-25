@@ -86,10 +86,11 @@ export async function textToSpeech(
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "tts-1", // Faster, cheaper model (tts-1-hd for higher quality)
+        model: "tts-1", // Faster model for lower latency
         input: text,
         voice: voice,
-        speed: 0.9, // Slightly slower for elderly users
+        speed: 1.0, // Normal speed for faster response
+        response_format: "mp3", // MP3 is faster to encode than opus
       }),
     });
 

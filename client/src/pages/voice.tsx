@@ -169,8 +169,9 @@ export default function Voice() {
     try {
       const response = await sendMessageMutation.mutateAsync(userMessage);
       
-      // Auto-speak the response in parallel (don't wait)
+      // Auto-speak the response immediately (fire and forget)
       if (autoSpeak && response?.reply) {
+        // Don't await - start speaking in parallel
         speakText(response.reply).catch(err => {
           console.error("TTS error:", err);
           // Silently fail - don't block the UI
@@ -191,12 +192,19 @@ export default function Voice() {
         audioRef.current = null;
       }
       
-      // Try ElevenLabs TTS first
+      // Try server TTS (ElevenLabs/OpenAI)
       try {
-        const audioBlob = await textToSpeech(text, undefined, { language: userLanguage });
+        // Start TTS request immediately
+        const ttsPromise = textToSpeech(text, undefined, { language: userLanguage });
+        
+        // Create audio element and start loading as soon as blob arrives
+        const audioBlob = await ttsPromise;
         const audioUrl = URL.createObjectURL(audioBlob);
         const audio = new Audio(audioUrl);
         audioRef.current = audio;
+        
+        // Preload and play immediately
+        audio.preload = "auto";
         
         audio.onended = () => {
           setIsSpeaking(false);
@@ -210,11 +218,12 @@ export default function Voice() {
           audioRef.current = null;
         };
         
+        // Play as soon as possible
         await audio.play();
       } catch (ttsError: any) {
-        console.log("ElevenLabs TTS failed, falling back to browser speech:", ttsError.message);
+        console.log("Server TTS failed, falling back to browser speech:", ttsError.message);
         
-        // Fallback to browser's built-in speech synthesis
+        // Fallback to browser's built-in speech synthesis (instant, no latency)
         if ('speechSynthesis' in window) {
           const utterance = new SpeechSynthesisUtterance(text);
           
@@ -237,7 +246,7 @@ export default function Voice() {
           };
           
           utterance.lang = languageMap[userLanguage] || "en-US";
-          utterance.rate = 0.9; // Slightly slower for elderly users
+          utterance.rate = 1.0; // Normal speed
           utterance.pitch = 1.0;
           
           utterance.onend = () => {
