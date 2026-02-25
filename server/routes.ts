@@ -365,8 +365,14 @@ export async function registerRoutes(
         return res.status(400).json({ error: "Text is required" });
       }
 
+      // Pass user's language preference to TTS for better voice selection
+      const ttsOptions = {
+        ...options,
+        language: options?.language || user.language || "English",
+      };
+
       const { textToSpeech } = await import("./lib/voice-service");
-      const audioBuffer = await textToSpeech(text, voiceId, options);
+      const audioBuffer = await textToSpeech(text, voiceId, ttsOptions);
 
       res.set({
         "Content-Type": "audio/mpeg",

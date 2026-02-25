@@ -27,33 +27,81 @@ export async function textToSpeech(
     similarityBoost?: number;
     style?: number;
     speakerBoost?: boolean;
+    language?: string;
   } = {}
 ): Promise<Buffer> {
-  if (!elevenLabs) {
-    throw new Error("ElevenLabs not configured. Add ELEVENLABS_API_KEY to .env");
+  // Try ElevenLabs first
+  if (elevenLabs) {
+    try {
+      const audio = await elevenLabs.textToSpeech.convert(voiceId, {
+        text,
+        model_id: "eleven_multilingual_v2", // Supports multiple languages
+        voice_settings: {
+          stability: options.stability ?? 0.5,
+          similarity_boost: options.similarityBoost ?? 0.75,
+          style: options.style ?? 0.0,
+          use_speaker_boost: options.speakerBoost ?? true,
+        },
+      });
+
+      // Convert stream to buffer
+      const chunks: Buffer[] = [];
+      for await (const chunk of audio) {
+        chunks.push(Buffer.from(chunk));
+      }
+
+      return Buffer.concat(chunks);
+    } catch (error: any) {
+      console.log("ElevenLabs TTS failed, falling back to OpenAI:", error.message);
+      // Fall through to OpenAI fallback
+    }
+  }
+
+  // Fallback to OpenAI TTS
+  if (!openaiApiKey) {
+    throw new Error("Both ElevenLabs and OpenAI TTS are unavailable. Add API keys to .env file.");
   }
 
   try {
-    const audio = await elevenLabs.textToSpeech.convert(voiceId, {
-      text,
-      model_id: "eleven_multilingual_v2", // Supports multiple languages
-      voice_settings: {
-        stability: options.stability ?? 0.5,
-        similarity_boost: options.similarityBoost ?? 0.75,
-        style: options.style ?? 0.0,
-        use_speaker_boost: options.speakerBoost ?? true,
+    console.log("Using OpenAI TTS as fallback");
+    
+    // Map language to OpenAI voice
+    const voiceMap: Record<string, string> = {
+      "English": "alloy",    // Neutral, balanced
+      "Hindi": "nova",       // Warm, friendly (works well for Hindi)
+      "Spanish": "shimmer",  // Warm, expressive
+      "French": "echo",      // Clear, articulate
+      "German": "fable",     // Expressive
+      "Chinese": "onyx",     // Deep, clear
+      "Japanese": "nova",    // Warm
+      "Arabic": "alloy",     // Neutral
+    };
+    
+    const voice = options.language ? (voiceMap[options.language] || "alloy") : "alloy";
+    
+    const response = await fetch("https://api.openai.com/v1/audio/speech", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${openaiApiKey}`,
+        "Content-Type": "application/json",
       },
+      body: JSON.stringify({
+        model: "tts-1", // Faster, cheaper model (tts-1-hd for higher quality)
+        input: text,
+        voice: voice,
+        speed: 0.9, // Slightly slower for elderly users
+      }),
     });
 
-    // Convert stream to buffer
-    const chunks: Buffer[] = [];
-    for await (const chunk of audio) {
-      chunks.push(Buffer.from(chunk));
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(`OpenAI TTS error: ${errorData.error?.message || response.statusText}`);
     }
 
-    return Buffer.concat(chunks);
+    const arrayBuffer = await response.arrayBuffer();
+    return Buffer.from(arrayBuffer);
   } catch (error: any) {
-    console.error("TTS error:", error);
+    console.error("OpenAI TTS error:", error);
     throw new Error(`Text-to-speech failed: ${error.message}`);
   }
 }
