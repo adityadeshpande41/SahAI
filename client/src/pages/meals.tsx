@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -26,7 +26,7 @@ import {
   Sparkles,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { useTodayMeals, useCreateMeal, useUploadMealPhoto } from "@/hooks/use-api";
+import { useTodayMeals, useCreateMeal, useUploadMealPhoto, useUpdateMeal } from "@/hooks/use-api";
 import { useVoiceRecording } from "@/hooks/use-voice-recording";
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from "recharts";
 import * as api from "@/lib/api-client";
@@ -65,6 +65,7 @@ export default function Meals() {
   const { toast } = useToast();
   const { data: meals, isLoading: mealsLoading } = useTodayMeals();
   const createMeal = useCreateMeal();
+  const updateMeal = useUpdateMeal();
   const uploadMealPhoto = useUploadMealPhoto();
   const { isRecording, startRecording, stopRecording, transcript } = useVoiceRecording();
   
@@ -83,6 +84,7 @@ export default function Meals() {
   const [loadingInsights, setLoadingInsights] = useState(false);
   const [showCreateCustom, setShowCreateCustom] = useState(false);
   const [customMeal, setCustomMeal] = useState({ name: "", emoji: "🍽️", calories: 0, quantity: "" });
+  const [nutritionGoals, setNutritionGoals] = useState({ calories: 2000, protein: 50, carbs: 250, fat: 65 });
 
   const logMeal = async (mealType: string, foods?: string, estimatedCalories?: number) => {
     await createMeal.mutateAsync({
@@ -116,6 +118,36 @@ export default function Meals() {
     toast({
       title: "Meal logged",
       description: `${mealType} has been recorded.`,
+    });
+  };
+
+  const addMoreToMeal = async (meal: any) => {
+    if (!mealText.trim()) {
+      toast({
+        title: "Please enter food items",
+        description: "Describe what else you ate",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Append new food to existing meal
+    const updatedFoods = `${meal.foods}, ${mealText}`;
+    
+    await updateMeal.mutateAsync({
+      mealId: meal.id,
+      data: {
+        foods: updatedFoods,
+        estimatedCalories: (meal.estimatedCalories || 200) + 200, // Add estimated calories
+      },
+    });
+    
+    setAddingMeal(null);
+    setMealText("");
+    
+    toast({
+      title: "Meal updated",
+      description: "Additional food has been added to your meal.",
     });
   };
 
@@ -300,8 +332,32 @@ export default function Meals() {
     return sum + (m.estimatedCalories || m.nutritionData?.calories || 200);
   }, 0);
   
-  // Calculate calorie goal based on age group (rough estimate)
-  const calorieGoal = 2000; // Default, could be personalized based on user profile
+  // Load nutrition goals from API
+  useEffect(() => {
+    fetch('/api/health-goals', { credentials: 'include' })
+      .then(res => res.json())
+      .then(goals => {
+        if (goals && goals.calories) {
+          setNutritionGoals({
+            calories: goals.calories,
+            protein: goals.protein,
+            carbs: goals.carbs,
+            fat: goals.fat,
+          });
+        }
+      })
+      .catch(err => console.error('Failed to load nutrition goals:', err));
+  }, []);
+  
+  // Get unique meal types for the selector
+  const uniqueMealTypes = useMemo(() => 
+    Array.from(new Set(todayMealsData.map((m: any) => m.mealType))),
+    [todayMealsData]
+  );
+  const defaultMealType = aiInsights?.mealType || uniqueMealTypes[0];
+  
+  // Calculate calorie goal based on nutrition goals
+  const calorieGoal = nutritionGoals.calories;
   const calorieProgress = (estimatedCalories / calorieGoal) * 100;
   const isOverGoal = estimatedCalories > calorieGoal;
 
@@ -487,12 +543,12 @@ export default function Meals() {
             <div className="space-y-1">
               <div className="flex items-center justify-between text-xs">
                 <span className="text-muted-foreground">Protein</span>
-                <span className="font-medium">~{Math.round(estimatedCalories * 0.25 / 4)}g / 50g</span>
+                <span className="font-medium">~{Math.round(estimatedCalories * 0.25 / 4)}g / {nutritionGoals.protein}g</span>
               </div>
               <div className="h-1.5 rounded-full bg-muted overflow-hidden">
                 <div 
                   className="h-full bg-gradient-to-r from-blue-500 to-blue-600 transition-all"
-                  style={{ width: `${Math.min((estimatedCalories * 0.25 / 4 / 50) * 100, 100)}%` }}
+                  style={{ width: `${Math.min((estimatedCalories * 0.25 / 4 / nutritionGoals.protein) * 100, 100)}%` }}
                 />
               </div>
             </div>
@@ -501,12 +557,12 @@ export default function Meals() {
             <div className="space-y-1">
               <div className="flex items-center justify-between text-xs">
                 <span className="text-muted-foreground">Carbs</span>
-                <span className="font-medium">~{Math.round(estimatedCalories * 0.50 / 4)}g / 250g</span>
+                <span className="font-medium">~{Math.round(estimatedCalories * 0.50 / 4)}g / {nutritionGoals.carbs}g</span>
               </div>
               <div className="h-1.5 rounded-full bg-muted overflow-hidden">
                 <div 
                   className="h-full bg-gradient-to-r from-green-500 to-green-600 transition-all"
-                  style={{ width: `${Math.min((estimatedCalories * 0.50 / 4 / 250) * 100, 100)}%` }}
+                  style={{ width: `${Math.min((estimatedCalories * 0.50 / 4 / nutritionGoals.carbs) * 100, 100)}%` }}
                 />
               </div>
             </div>
@@ -515,12 +571,12 @@ export default function Meals() {
             <div className="space-y-1">
               <div className="flex items-center justify-between text-xs">
                 <span className="text-muted-foreground">Fat</span>
-                <span className="font-medium">~{Math.round(estimatedCalories * 0.25 / 9)}g / 65g</span>
+                <span className="font-medium">~{Math.round(estimatedCalories * 0.25 / 9)}g / {nutritionGoals.fat}g</span>
               </div>
               <div className="h-1.5 rounded-full bg-muted overflow-hidden">
                 <div 
                   className="h-full bg-gradient-to-r from-amber-500 to-amber-600 transition-all"
-                  style={{ width: `${Math.min((estimatedCalories * 0.25 / 9 / 65) * 100, 100)}%` }}
+                  style={{ width: `${Math.min((estimatedCalories * 0.25 / 9 / nutritionGoals.fat) * 100, 100)}%` }}
                 />
               </div>
             </div>
@@ -772,7 +828,21 @@ export default function Meals() {
         ) : (
           <div className="space-y-3">
             {["breakfast", "lunch", "dinner"].map(mealType => {
-              const meal = todayMealsData.find((m: any) => m.mealType === mealType);
+              // Get ALL meals of this type and combine them
+              const mealsOfType = todayMealsData.filter((m: any) => m.mealType === mealType);
+              const hasMeals = mealsOfType.length > 0;
+              
+              // Combine all foods and calories
+              const combinedFoods = mealsOfType.map((m: any) => m.foods).join(", ");
+              const totalCalories = mealsOfType.reduce((sum: number, m: any) => 
+                sum + (m.estimatedCalories || m.nutritionData?.calories || 200), 0
+              );
+              const latestTime = hasMeals 
+                ? new Date(Math.max(...mealsOfType.map((m: any) => new Date(m.loggedAt).getTime())))
+                : null;
+              
+              // Use the most recent meal for the "Add More" functionality
+              const meal = mealsOfType[mealsOfType.length - 1];
               const Icon = mealIcons[mealType] || UtensilsCrossed;
               return (
                 <Card key={mealType} className="card-elevated" data-testid={`card-meal-${mealType}`}>
@@ -784,7 +854,7 @@ export default function Meals() {
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">
                           <h3 className="font-semibold text-sm capitalize">{mealType}</h3>
-                          {meal ? (
+                          {hasMeals ? (
                             <Badge variant="secondary" className="text-xs no-default-active-elevate bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300">
                               <Check className="w-3 h-3 mr-0.5" /> Logged
                             </Badge>
@@ -792,14 +862,14 @@ export default function Meals() {
                             <Badge variant="secondary" className="text-xs no-default-active-elevate">Not logged</Badge>
                           )}
                         </div>
-                        {meal ? (
+                        {hasMeals ? (
                           <div className="mt-1.5 space-y-2">
-                            <p className="text-sm">{meal.foods}</p>
+                            <p className="text-sm">{combinedFoods}</p>
                             <div className="flex items-center justify-between gap-2">
                               <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                                <span>{new Date(meal.loggedAt).toLocaleTimeString()}</span>
+                                <span>{latestTime?.toLocaleTimeString()}</span>
                                 <span className="text-amber-600 dark:text-amber-400 font-medium">
-                                  ~{meal.estimatedCalories || meal.nutritionData?.calories || 200} cal
+                                  ~{totalCalories} cal
                                 </span>
                               </div>
                               <Button 
@@ -824,11 +894,11 @@ export default function Meals() {
                                 <div className="flex items-center gap-2">
                                   <Button 
                                     size="sm" 
-                                    onClick={() => logMeal(mealType)} 
-                                    disabled={createMeal.isPending}
+                                    onClick={() => addMoreToMeal(meal)} 
+                                    disabled={updateMeal.isPending}
                                     data-testid={`button-log-${mealType}`}
                                   >
-                                    {createMeal.isPending ? <Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" /> : <Check className="w-3.5 h-3.5 mr-1" />}
+                                    {updateMeal.isPending ? <Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" /> : <Check className="w-3.5 h-3.5 mr-1" />}
                                     Log Additional Food
                                   </Button>
                                   <Button size="sm" variant="secondary" onClick={() => { setAddingMeal(null); setMealText(""); }}>
@@ -1158,21 +1228,24 @@ export default function Meals() {
             {todayMealsData.length > 0 && (
               <div className="flex items-center gap-2">
                 <Select 
-                  value={aiInsights?.mealType || todayMealsData[0]?.mealType}
+                  value={defaultMealType}
                   onValueChange={(mealType) => {
-                    const selectedMeal = todayMealsData.find(m => m.mealType === mealType);
-                    if (selectedMeal) {
-                      learnWithAI(selectedMeal.foods, selectedMeal.mealType, selectedMeal.estimatedCalories);
-                    }
+                    // Get all meals of this type and combine them
+                    const mealsOfType = todayMealsData.filter((m: any) => m.mealType === mealType);
+                    const combinedFoods = mealsOfType.map((m: any) => m.foods).join(", ");
+                    const totalCalories = mealsOfType.reduce((sum: number, m: any) => 
+                      sum + (m.estimatedCalories || m.nutritionData?.calories || 200), 0
+                    );
+                    learnWithAI(combinedFoods, mealType, totalCalories);
                   }}
                 >
                   <SelectTrigger className="h-8 w-[140px] text-xs">
                     <SelectValue placeholder="Select meal" />
                   </SelectTrigger>
                   <SelectContent>
-                    {todayMealsData.map((meal: any, idx: number) => (
-                      <SelectItem key={idx} value={meal.mealType}>
-                        {meal.mealType.charAt(0).toUpperCase() + meal.mealType.slice(1)}
+                    {uniqueMealTypes.map((mealType: any) => (
+                      <SelectItem key={mealType} value={mealType}>
+                        {mealType.charAt(0).toUpperCase() + mealType.slice(1)}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -1181,11 +1254,14 @@ export default function Meals() {
                   size="sm"
                   variant="secondary"
                   onClick={() => {
-                    const mealType = aiInsights?.mealType || todayMealsData[0]?.mealType;
-                    const selectedMeal = todayMealsData.find(m => m.mealType === mealType);
-                    if (selectedMeal) {
-                      learnWithAI(selectedMeal.foods, selectedMeal.mealType, selectedMeal.estimatedCalories);
-                    }
+                    const mealType = defaultMealType;
+                    // Get all meals of this type and combine them
+                    const mealsOfType = todayMealsData.filter((m: any) => m.mealType === mealType);
+                    const combinedFoods = mealsOfType.map((m: any) => m.foods).join(", ");
+                    const totalCalories = mealsOfType.reduce((sum: number, m: any) => 
+                      sum + (m.estimatedCalories || m.nutritionData?.calories || 200), 0
+                    );
+                    learnWithAI(combinedFoods, mealType, totalCalories);
                   }}
                   disabled={loadingInsights}
                   data-testid="button-learn-ai"

@@ -667,6 +667,81 @@ export class DatabaseStorage implements IStorage {
     return { medication, meals, vitals };
   }
 
+  async getHealthGoals(userId: string): Promise<any | undefined> {
+    if (!this.db) return undefined;
+    
+    const [goals] = await this.db
+      .select()
+      .from(schema.healthGoals)
+      .where(eq(schema.healthGoals.userId, userId))
+      .limit(1);
+    
+    return goals;
+  }
+
+  async saveHealthGoals(userId: string, data: any): Promise<any> {
+    if (!this.db) throw new Error("Database not available");
+    
+    const existing = await this.getHealthGoals(userId);
+    
+    if (existing) {
+      // Update existing
+      const [updated] = await this.db
+        .update(schema.healthGoals)
+        .set({ ...data, updatedAt: new Date() })
+        .where(eq(schema.healthGoals.userId, userId))
+        .returning();
+      return updated;
+    } else {
+      // Insert new
+      const [created] = await this.db
+        .insert(schema.healthGoals)
+        .values({ userId, ...data })
+        .returning();
+      return created;
+    }
+  }
+
+  async saveCaregiverToken(userId: string, token: string, expiresAt: Date): Promise<void> {
+    if (!this.db) return;
+    
+    await this.db
+      .insert(schema.caregiverTokens)
+      .values({ userId, token, expiresAt })
+      .onConflictDoUpdate({
+        target: schema.caregiverTokens.token,
+        set: { expiresAt, createdAt: new Date() }
+      });
+  }
+
+  async validateCaregiverToken(token: string): Promise<{ userId: string } | undefined> {
+    if (!this.db) {
+      // Fallback for in-memory: decode token
+      try {
+        const decoded = Buffer.from(token, 'base64').toString('utf-8');
+        const userId = decoded.split('-')[0];
+        return { userId };
+      } catch {
+        return undefined;
+      }
+    }
+    
+    const [tokenData] = await this.db
+      .select()
+      .from(schema.caregiverTokens)
+      .where(eq(schema.caregiverTokens.token, token))
+      .limit(1);
+    
+    if (!tokenData) return undefined;
+    
+    // Check if expired
+    if (tokenData.expiresAt && new Date() > tokenData.expiresAt) {
+      return undefined;
+    }
+    
+    return { userId: tokenData.userId };
+  }
+
   private calculateStreak(dates: Date[]): number {
     if (dates.length === 0) return 0;
     

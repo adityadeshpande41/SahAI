@@ -18,6 +18,7 @@ import Meals from "@/pages/meals";
 import Symptoms from "@/pages/symptoms";
 import Voice from "@/pages/voice";
 import Caregiver from "@/pages/caregiver";
+import CaregiverPortal from "@/pages/caregiver-portal";
 import Insights from "@/pages/insights";
 import Settings from "@/pages/settings";
 import Exercise from "@/pages/exercise";
@@ -44,12 +45,14 @@ function AppRoutes() {
   }, []);
 
   // Public routes (no auth required)
-  if (location === "/landing" || location === "/login" || location === "/register") {
+  if (location === "/landing" || location === "/login" || location === "/register" || location === "/caregiver-portal") {
     return (
       <Switch>
         <Route path="/landing" component={Landing} />
         <Route path="/login" component={Login} />
         <Route path="/register" component={Register} />
+        <Route path="/caregiver-portal" component={CaregiverPortal} />
+        <Route component={NotFound} />
       </Switch>
     );
   }

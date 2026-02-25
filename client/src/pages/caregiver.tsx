@@ -34,6 +34,20 @@ export default function Caregiver() {
   const [showAlert, setShowAlert] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
 
+  // Health goals state (for caregiver to set)
+  const [healthGoals, setHealthGoals] = useState({
+    calories: 2000,
+    protein: 50,
+    carbs: 250,
+    fat: 65,
+    exerciseMinutes: 30,
+    medicationReminders: true,
+  });
+  
+  // Shareable link state
+  const [shareableLink, setShareableLink] = useState("");
+  const [showLinkCopied, setShowLinkCopied] = useState(false);
+
   // Load existing caregiver data
   const allCaregivers = caregivers || [];
   
@@ -100,7 +114,79 @@ export default function Caregiver() {
       setCaregiverRelation(existingCaregiver.relationship || "");
       setPrivacyLevel(existingCaregiver.notificationPreferences?.level || "daily");
     }
+    
+    // Load health goals from localStorage
+    const savedGoals = localStorage.getItem("caregiverHealthGoals");
+    if (savedGoals) {
+      try {
+        setHealthGoals(JSON.parse(savedGoals));
+      } catch (e) {
+        console.error("Failed to parse health goals:", e);
+      }
+    }
   }, [existingCaregiver, isEditing]);
+
+  const handleSaveHealthGoals = () => {
+    // Save to localStorage
+    localStorage.setItem("caregiverHealthGoals", JSON.stringify(healthGoals));
+    
+    // Also sync with nutrition goals in settings
+    localStorage.setItem("nutritionGoals", JSON.stringify({
+      calories: healthGoals.calories,
+      protein: healthGoals.protein,
+      carbs: healthGoals.carbs,
+      fat: healthGoals.fat,
+    }));
+    
+    toast({
+      title: "Health goals saved",
+      description: "Goals have been set for your loved one.",
+    });
+  };
+
+  const generateShareableLink = async () => {
+    try {
+      // Generate token via API
+      const response = await fetch('/api/caregiver/generate-token', {
+        method: 'POST',
+        credentials: 'include',
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to generate token');
+      }
+      
+      const { token } = await response.json();
+      
+      // Get the correct base URL
+      const baseUrl = window.location.origin;
+      const link = `${baseUrl}/caregiver-portal?token=${token}`;
+      setShareableLink(link);
+      
+      return link;
+    } catch (error) {
+      console.error('Generate link error:', error);
+      toast({
+        title: "Error generating link",
+        description: "Please try again later.",
+        variant: "destructive",
+      });
+      return "";
+    }
+  };
+
+  const copyShareableLink = async () => {
+    const link = shareableLink || await generateShareableLink();
+    if (link) {
+      navigator.clipboard.writeText(link);
+      setShowLinkCopied(true);
+      setTimeout(() => setShowLinkCopied(false), 3000);
+      toast({
+        title: "Link copied!",
+        description: "Share this link with your caregiver so they can set health goals remotely.",
+      });
+    }
+  };
 
   if (isLoading) {
     return (
@@ -303,6 +389,134 @@ export default function Caregiver() {
               Please add a caregiver contact first to send updates.
             </p>
           )}
+        </CardContent>
+      </Card>
+
+      {/* Health Goals Card - For Caregivers to Set */}
+      <Card className="card-elevated bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-950/20 dark:to-indigo-950/20 border-blue-200 dark:border-blue-800" data-testid="card-health-goals">
+        <CardHeader className="pb-2">
+          <CardTitle className="text-sm font-semibold flex items-center gap-2">
+            <Activity className="w-4 h-4" /> Set Health Goals
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="rounded-lg bg-blue-100 dark:bg-blue-900/30 p-3 space-y-2">
+            <p className="text-xs font-medium text-blue-800 dark:text-blue-200">
+              👥 Share with Caregiver
+            </p>
+            <p className="text-xs text-blue-700 dark:text-blue-300">
+              Generate a secure link that your caregiver can use to set your health goals remotely. They won't need to log in or access your account.
+            </p>
+            <div className="flex gap-2">
+              <Button
+                size="sm"
+                variant="secondary"
+                onClick={copyShareableLink}
+                className="flex-1"
+              >
+                {showLinkCopied ? (
+                  <>
+                    <Check className="w-3.5 h-3.5 mr-1" />
+                    Link Copied!
+                  </>
+                ) : (
+                  <>
+                    <Shield className="w-3.5 h-3.5 mr-1" />
+                    Copy Caregiver Link
+                  </>
+                )}
+              </Button>
+            </div>
+            {shareableLink && (
+              <div className="mt-2 p-2 rounded bg-white dark:bg-black/20 text-xs break-all text-muted-foreground">
+                {shareableLink}
+              </div>
+            )}
+          </div>
+
+          <div className="border-t pt-3">
+            <p className="text-xs text-muted-foreground mb-3">
+              Or set goals directly here:
+            </p>
+            
+            <div className="space-y-3">
+              <div className="space-y-1.5">
+                <Label htmlFor="goal-calories" className="text-xs font-medium">
+                  Daily Calories (kcal)
+                </Label>
+                <Input
+                  id="goal-calories"
+                  type="number"
+                  value={healthGoals.calories}
+                  onChange={(e) => setHealthGoals({ ...healthGoals, calories: parseInt(e.target.value) || 0 })}
+                  className="h-9"
+                />
+              </div>
+
+              <div className="grid grid-cols-3 gap-2">
+                <div className="space-y-1.5">
+                  <Label htmlFor="goal-protein" className="text-xs font-medium">
+                    Protein (g)
+                  </Label>
+                  <Input
+                    id="goal-protein"
+                    type="number"
+                    value={healthGoals.protein}
+                    onChange={(e) => setHealthGoals({ ...healthGoals, protein: parseInt(e.target.value) || 0 })}
+                    className="h-9"
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label htmlFor="goal-carbs" className="text-xs font-medium">
+                    Carbs (g)
+                  </Label>
+                  <Input
+                    id="goal-carbs"
+                    type="number"
+                    value={healthGoals.carbs}
+                    onChange={(e) => setHealthGoals({ ...healthGoals, carbs: parseInt(e.target.value) || 0 })}
+                    className="h-9"
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label htmlFor="goal-fat" className="text-xs font-medium">
+                    Fat (g)
+                  </Label>
+                  <Input
+                    id="goal-fat"
+                    type="number"
+                    value={healthGoals.fat}
+                    onChange={(e) => setHealthGoals({ ...healthGoals, fat: parseInt(e.target.value) || 0 })}
+                    className="h-9"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-1.5">
+                <Label htmlFor="goal-exercise" className="text-xs font-medium">
+                  Daily Exercise (minutes)
+                </Label>
+                <Input
+                  id="goal-exercise"
+                  type="number"
+                  value={healthGoals.exerciseMinutes}
+                  onChange={(e) => setHealthGoals({ ...healthGoals, exerciseMinutes: parseInt(e.target.value) || 0 })}
+                  className="h-9"
+                />
+              </div>
+            </div>
+
+            <Button
+              onClick={handleSaveHealthGoals}
+              className="w-full mt-3"
+              data-testid="button-save-health-goals"
+            >
+              <Check className="w-4 h-4 mr-1" />
+              Save Health Goals
+            </Button>
+          </div>
         </CardContent>
       </Card>
 

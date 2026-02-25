@@ -99,6 +99,14 @@ export interface IStorage {
   getVitalsStreak(userId: string): Promise<number>;
   getMedicationStreak(userId: string): Promise<number>;
   getUserStreaks(userId: string): Promise<{ medication: number; meals: number; vitals: number }>;
+
+  // Health Goals
+  getHealthGoals(userId: string): Promise<any | undefined>;
+  saveHealthGoals(userId: string, data: any): Promise<any>;
+
+  // Caregiver Tokens
+  saveCaregiverToken(userId: string, token: string, expiresAt: Date): Promise<void>;
+  validateCaregiverToken(token: string): Promise<{ userId: string } | undefined>;
 }
 
 export class MemStorage implements IStorage {
@@ -697,6 +705,31 @@ export class MemStorage implements IStorage {
     ]);
     
     return { medication, meals, vitals };
+  }
+
+  async getHealthGoals(userId: string): Promise<any | undefined> {
+    // In-memory storage - just return defaults
+    return undefined;
+  }
+
+  async saveHealthGoals(userId: string, data: any): Promise<any> {
+    // In-memory storage - just return the data
+    return { userId, ...data, updatedAt: new Date() };
+  }
+
+  async saveCaregiverToken(userId: string, token: string, expiresAt: Date): Promise<void> {
+    // In-memory storage - no-op
+  }
+
+  async validateCaregiverToken(token: string): Promise<{ userId: string } | undefined> {
+    // In-memory storage - decode token
+    try {
+      const decoded = Buffer.from(token, 'base64').toString('utf-8');
+      const userId = decoded.split('-')[0];
+      return { userId };
+    } catch {
+      return undefined;
+    }
   }
 
   private calculateStreak(dates: Date[]): number {

@@ -1803,5 +1803,125 @@ Keep it simple and safe for elderly users.`,
     }
   });
 
+  // ============================================
+  // HEALTH GOALS & CAREGIVER PORTAL
+  // ============================================
+
+  // Generate caregiver token
+  app.post("/api/caregiver/generate-token", async (req, res) => {
+    try {
+      const user = await getCurrentUser(req);
+      const token = Buffer.from(`${user.id}-${Date.now()}`).toString('base64');
+      
+      // Save token to database with 30-day expiration
+      const expiresAt = new Date();
+      expiresAt.setDate(expiresAt.getDate() + 30);
+      
+      await storage.saveCaregiverToken(user.id, token, expiresAt);
+      
+      res.json({ token });
+    } catch (error: any) {
+      console.error("Generate token error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Validate caregiver token and get user ID
+  app.get("/api/caregiver/validate-token/:token", async (req, res) => {
+    try {
+      const { token } = req.params;
+      const tokenData = await storage.validateCaregiverToken(token);
+      
+      if (!tokenData) {
+        return res.status(401).json({ error: "Invalid or expired token" });
+      }
+      
+      res.json({ userId: tokenData.userId, valid: true });
+    } catch (error: any) {
+      console.error("Validate token error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Get health goals for a user (via token or authenticated)
+  app.get("/api/health-goals", async (req, res) => {
+    try {
+      const user = await getCurrentUser(req);
+      const goals = await storage.getHealthGoals(user.id);
+      res.json(goals || { calories: 2000, protein: 50, carbs: 250, fat: 65, exerciseMinutes: 30 });
+    } catch (error: any) {
+      console.error("Get health goals error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Get health goals via caregiver token (no auth required)
+  app.get("/api/caregiver/health-goals/:token", async (req, res) => {
+    try {
+      const { token } = req.params;
+      const tokenData = await storage.validateCaregiverToken(token);
+      
+      if (!tokenData) {
+        return res.status(401).json({ error: "Invalid or expired token" });
+      }
+      
+      const goals = await storage.getHealthGoals(tokenData.userId);
+      res.json(goals || { calories: 2000, protein: 50, carbs: 250, fat: 65, exerciseMinutes: 30 });
+    } catch (error: any) {
+      console.error("Get health goals via token error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Save health goals (authenticated user)
+  app.post("/api/health-goals", async (req, res) => {
+    try {
+      const user = await getCurrentUser(req);
+      const { calories, protein, carbs, fat, exerciseMinutes } = req.body;
+      
+      const goals = await storage.saveHealthGoals(user.id, {
+        calories,
+        protein,
+        carbs,
+        fat,
+        exerciseMinutes,
+        setBy: 'user',
+      });
+      
+      res.json(goals);
+    } catch (error: any) {
+      console.error("Save health goals error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Save health goals via caregiver token (no auth required)
+  app.post("/api/caregiver/health-goals/:token", async (req, res) => {
+    try {
+      const { token } = req.params;
+      const tokenData = await storage.validateCaregiverToken(token);
+      
+      if (!tokenData) {
+        return res.status(401).json({ error: "Invalid or expired token" });
+      }
+      
+      const { calories, protein, carbs, fat, exerciseMinutes } = req.body;
+      
+      const goals = await storage.saveHealthGoals(tokenData.userId, {
+        calories,
+        protein,
+        carbs,
+        fat,
+        exerciseMinutes,
+        setBy: 'caregiver',
+      });
+      
+      res.json(goals);
+    } catch (error: any) {
+      console.error("Save health goals via token error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   return httpServer;
 }

@@ -333,5 +333,43 @@ export const pushSubscriptions = pgTable("push_subscriptions", {
 
 export type PushSubscription = typeof pushSubscriptions.$inferSelect;
 
+// Health Goals (set by caregivers or users)
+export const healthGoals = pgTable("health_goals", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }).unique(),
+  calories: integer("calories").default(2000),
+  protein: integer("protein").default(50),
+  carbs: integer("carbs").default(250),
+  fat: integer("fat").default(65),
+  exerciseMinutes: integer("exercise_minutes").default(30),
+  setBy: text("set_by"), // 'user' or 'caregiver'
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => ({
+  userIdx: index("health_goals_user_idx").on(table.userId),
+}));
+
+export const insertHealthGoalsSchema = createInsertSchema(healthGoals);
+export const selectHealthGoalsSchema = createSelectSchema(healthGoals);
+export type HealthGoals = typeof healthGoals.$inferSelect;
+export type InsertHealthGoals = typeof healthGoals.$inferInsert;
+
+// Caregiver Access Tokens
+export const caregiverTokens = pgTable("caregiver_tokens", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  token: text("token").notNull().unique(),
+  expiresAt: timestamp("expires_at"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => ({
+  tokenIdx: index("caregiver_tokens_token_idx").on(table.token),
+  userIdx: index("caregiver_tokens_user_idx").on(table.userId),
+}));
+
+export const insertCaregiverTokenSchema = createInsertSchema(caregiverTokens);
+export const selectCaregiverTokenSchema = createSelectSchema(caregiverTokens);
+export type CaregiverToken = typeof caregiverTokens.$inferSelect;
+export type InsertCaregiverToken = typeof caregiverTokens.$inferInsert;
+
 export type HealthVital = typeof healthVitals.$inferSelect;
 export type InsertHealthVital = typeof healthVitals.$inferInsert;
