@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   Pill,
   Check,
@@ -93,7 +94,7 @@ export default function Medications() {
     setLoadingInsights(true);
     try {
       const insights = await api.getMedicationAIInsights(medicationName);
-      setAiInsights(insights);
+      setAiInsights({ ...insights, medicationName }); // Store which medication was analyzed
     } catch (error: any) {
       toast({
         title: "AI Insights failed",
@@ -340,26 +341,58 @@ export default function Medications() {
               <Sparkles className="w-5 h-5 text-purple-600 dark:text-purple-400" />
               <h3 className="font-semibold text-sm">Learn with AI</h3>
             </div>
-            <Button
-              size="sm"
-              variant="secondary"
-              onClick={() => {
-                if (meds?.schedule && meds.schedule.length > 0) {
-                  const firstMed = meds.schedule[0];
-                  learnWithAI(firstMed.name);
-                } else {
-                  learnWithAI("Aspirin");
-                }
-              }}
-              disabled={loadingInsights}
-              data-testid="button-learn-ai-medication"
-            >
-              {loadingInsights ? (
-                <><Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" /> Analyzing...</>
-              ) : (
-                <><Sparkles className="w-3.5 h-3.5 mr-1" /> Get Insights</>
-              )}
-            </Button>
+            {meds?.schedule && meds.schedule.length > 0 && (
+              <div className="flex items-center gap-2">
+                <Select 
+                  value={aiInsights?.medicationName || meds.schedule[0]?.name}
+                  onValueChange={(medName) => {
+                    learnWithAI(medName);
+                  }}
+                >
+                  <SelectTrigger className="h-8 w-[140px] text-xs">
+                    <SelectValue placeholder="Select medication" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {meds.schedule.map((med: any, idx: number) => (
+                      <SelectItem key={idx} value={med.name}>
+                        {med.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  onClick={() => {
+                    const medName = aiInsights?.medicationName || meds.schedule[0]?.name;
+                    learnWithAI(medName);
+                  }}
+                  disabled={loadingInsights}
+                  data-testid="button-learn-ai-medication"
+                >
+                  {loadingInsights ? (
+                    <><Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" /> Analyzing...</>
+                  ) : (
+                    <><Sparkles className="w-3.5 h-3.5 mr-1" /> Get Insights</>
+                  )}
+                </Button>
+              </div>
+            )}
+            {(!meds?.schedule || meds.schedule.length === 0) && (
+              <Button
+                size="sm"
+                variant="secondary"
+                onClick={() => learnWithAI("Aspirin")}
+                disabled={loadingInsights}
+                data-testid="button-learn-ai-medication"
+              >
+                {loadingInsights ? (
+                  <><Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" /> Analyzing...</>
+                ) : (
+                  <><Sparkles className="w-3.5 h-3.5 mr-1" /> Get Insights</>
+                )}
+              </Button>
+            )}
           </div>
             
             {aiInsights && (

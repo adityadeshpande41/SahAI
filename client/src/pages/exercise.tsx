@@ -70,7 +70,7 @@ export default function Exercise() {
     setLoadingInsights(true);
     try {
       const insights = await api.getActivityAIInsights({ activity, duration });
-      setAiInsights(insights);
+      setAiInsights({ ...insights, activity }); // Store which activity was analyzed
     } catch (error: any) {
       toast({
         title: "AI Insights failed",
@@ -497,26 +497,64 @@ export default function Exercise() {
               <Sparkles className="w-5 h-5 text-purple-600 dark:text-purple-400" />
               <h3 className="font-semibold text-sm">Learn with AI</h3>
             </div>
-            <Button
-              size="sm"
-              variant="secondary"
-              onClick={() => {
-                if (todayActivities.length > 0) {
-                  const lastActivity = todayActivities[0];
-                  learnWithAI(lastActivity.activity, lastActivity.duration);
-                } else {
-                  learnWithAI("Walking", 30);
-                }
-              }}
-              disabled={loadingInsights}
-              data-testid="button-learn-ai-exercise"
-            >
-              {loadingInsights ? (
-                <><Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" /> Analyzing...</>
-              ) : (
-                <><Sparkles className="w-3.5 h-3.5 mr-1" /> Get Insights</>
-              )}
-            </Button>
+            {todayActivities.length > 0 && (
+              <div className="flex items-center gap-2">
+                <Select 
+                  value={aiInsights?.activity || todayActivities[0]?.activity}
+                  onValueChange={(activity) => {
+                    const selectedActivity = todayActivities.find(a => a.activity === activity);
+                    if (selectedActivity) {
+                      learnWithAI(selectedActivity.activity, selectedActivity.duration);
+                    }
+                  }}
+                >
+                  <SelectTrigger className="h-8 w-[140px] text-xs">
+                    <SelectValue placeholder="Select activity" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {todayActivities.map((activity: any, idx: number) => (
+                      <SelectItem key={idx} value={activity.activity}>
+                        {activity.activity} ({activity.duration}min)
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  onClick={() => {
+                    const activity = aiInsights?.activity || todayActivities[0]?.activity;
+                    const selectedActivity = todayActivities.find(a => a.activity === activity);
+                    if (selectedActivity) {
+                      learnWithAI(selectedActivity.activity, selectedActivity.duration);
+                    }
+                  }}
+                  disabled={loadingInsights}
+                  data-testid="button-learn-ai-exercise"
+                >
+                  {loadingInsights ? (
+                    <><Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" /> Analyzing...</>
+                  ) : (
+                    <><Sparkles className="w-3.5 h-3.5 mr-1" /> Get Insights</>
+                  )}
+                </Button>
+              </div>
+            )}
+            {todayActivities.length === 0 && (
+              <Button
+                size="sm"
+                variant="secondary"
+                onClick={() => learnWithAI("Walking", 30)}
+                disabled={loadingInsights}
+                data-testid="button-learn-ai-exercise"
+              >
+                {loadingInsights ? (
+                  <><Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" /> Analyzing...</>
+                ) : (
+                  <><Sparkles className="w-3.5 h-3.5 mr-1" /> Get Insights</>
+                )}
+              </Button>
+            )}
           </div>
             
             {aiInsights && (

@@ -132,7 +132,7 @@ export default function Meals() {
         mealType,
         estimatedCalories: calories,
       });
-      setAiInsights(insights);
+      setAiInsights({ ...insights, mealType }); // Store which meal was analyzed
     } catch (error: any) {
       toast({
         title: "AI Insights failed",
@@ -1155,26 +1155,64 @@ export default function Meals() {
               <Sparkles className="w-5 h-5 text-purple-600 dark:text-purple-400" />
               <h3 className="font-semibold text-sm">Learn with AI</h3>
             </div>
-            <Button
-              size="sm"
-              variant="secondary"
-              onClick={() => {
-                if (meals?.meals && meals.meals.length > 0) {
-                  const lastMeal = meals.meals[0];
-                  learnWithAI(lastMeal.foods, lastMeal.mealType, lastMeal.estimatedCalories);
-                } else {
-                  learnWithAI("Chicken salad with vegetables", "lunch", 350);
-                }
-              }}
-              disabled={loadingInsights}
-              data-testid="button-learn-ai"
-            >
-              {loadingInsights ? (
-                <><Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" /> Analyzing...</>
-              ) : (
-                <><Sparkles className="w-3.5 h-3.5 mr-1" /> Get Insights</>
-              )}
-            </Button>
+            {todayMealsData.length > 0 && (
+              <div className="flex items-center gap-2">
+                <Select 
+                  value={aiInsights?.mealType || todayMealsData[0]?.mealType}
+                  onValueChange={(mealType) => {
+                    const selectedMeal = todayMealsData.find(m => m.mealType === mealType);
+                    if (selectedMeal) {
+                      learnWithAI(selectedMeal.foods, selectedMeal.mealType, selectedMeal.estimatedCalories);
+                    }
+                  }}
+                >
+                  <SelectTrigger className="h-8 w-[140px] text-xs">
+                    <SelectValue placeholder="Select meal" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {todayMealsData.map((meal: any, idx: number) => (
+                      <SelectItem key={idx} value={meal.mealType}>
+                        {meal.mealType.charAt(0).toUpperCase() + meal.mealType.slice(1)}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  onClick={() => {
+                    const mealType = aiInsights?.mealType || todayMealsData[0]?.mealType;
+                    const selectedMeal = todayMealsData.find(m => m.mealType === mealType);
+                    if (selectedMeal) {
+                      learnWithAI(selectedMeal.foods, selectedMeal.mealType, selectedMeal.estimatedCalories);
+                    }
+                  }}
+                  disabled={loadingInsights}
+                  data-testid="button-learn-ai"
+                >
+                  {loadingInsights ? (
+                    <><Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" /> Analyzing...</>
+                  ) : (
+                    <><Sparkles className="w-3.5 h-3.5 mr-1" /> Get Insights</>
+                  )}
+                </Button>
+              </div>
+            )}
+            {todayMealsData.length === 0 && (
+              <Button
+                size="sm"
+                variant="secondary"
+                onClick={() => learnWithAI("Chicken salad with vegetables", "lunch", 350)}
+                disabled={loadingInsights}
+                data-testid="button-learn-ai"
+              >
+                {loadingInsights ? (
+                  <><Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" /> Analyzing...</>
+                ) : (
+                  <><Sparkles className="w-3.5 h-3.5 mr-1" /> Get Insights</>
+                )}
+              </Button>
+            )}
           </div>
             
             {aiInsights && (
