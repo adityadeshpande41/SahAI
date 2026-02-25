@@ -23,7 +23,7 @@ import { useCaregivers, useCreateCaregiver, useSendCaregiverUpdate } from "@/hoo
 
 export default function Caregiver() {
   const { toast } = useToast();
-  const { data: caregivers, isLoading } = useCaregivers();
+  const { data: caregivers, isLoading, refetch } = useCaregivers();
   const createCaregiver = useCreateCaregiver();
   const sendUpdate = useSendCaregiverUpdate();
   
@@ -67,6 +67,9 @@ export default function Caregiver() {
       },
     });
     setIsEditing(false);
+    
+    // Refetch caregivers to update the UI immediately
+    setTimeout(() => refetch(), 500);
   };
 
   const privacyOptions = [
@@ -271,7 +274,7 @@ export default function Caregiver() {
           
           <Button 
             onClick={() => sendUpdate.mutateAsync({})} 
-            disabled={sendUpdate.isPending || !existingCaregiver}
+            disabled={sendUpdate.isPending || (!existingCaregiver && !caregiverEmail)}
             data-testid="button-send-update"
             className="w-full"
           >
@@ -287,7 +290,7 @@ export default function Caregiver() {
               </>
             )}
           </Button>
-          {!existingCaregiver && (
+          {!existingCaregiver && !caregiverEmail && (
             <p className="text-xs text-amber-600 dark:text-amber-400">
               Please add a caregiver contact first to send updates.
             </p>
