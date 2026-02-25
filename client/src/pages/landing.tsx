@@ -27,14 +27,12 @@ export default function Landing() {
           </span>
         </div>
         <nav className="hidden md:flex items-center gap-6">
-          <button className="text-gray-600 hover:text-gray-900 font-medium">Features</button>
-          <button className="text-gray-600 hover:text-gray-900 font-medium">About</button>
           <Button variant="ghost" onClick={handleSignIn} className="font-medium">
             Sign In
           </Button>
           <Button onClick={handleGetStarted} className="bg-blue-600 hover:bg-blue-700 shadow-md">
             <Sparkles className="w-4 h-4 mr-2" />
-            Sign In
+            Sign Up
           </Button>
         </nav>
       </header>
