@@ -25,8 +25,10 @@ export default function Landing() {
               className="w-32 h-32 md:w-40 md:h-40 object-contain drop-shadow-2xl"
             />
           </div>
-          <h1 className="text-6xl md:text-7xl font-bold tracking-tight text-gradient mb-4">SahAI</h1>
-          <p className="text-3xl md:text-4xl font-semibold mb-6 bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
+          <h1 className="text-6xl md:text-7xl font-bold tracking-tight text-gradient mb-4 animate-pulse-slow">
+            SahAI
+          </h1>
+          <p className="text-3xl md:text-4xl font-semibold mb-6 bg-gradient-to-r from-primary via-purple-500 to-primary/70 bg-clip-text text-transparent animate-gradient bg-[length:200%_auto]">
             Your AI-Powered Health Companion
           </p>
           <p className="text-xl text-muted-foreground max-w-3xl mx-auto mb-10 leading-relaxed">
@@ -158,11 +160,11 @@ export default function Landing() {
             </div>
 
             <div className="flex gap-4 p-6 rounded-xl bg-gradient-to-br from-primary/5 to-primary/10 border border-primary/20">
-              <Clock className="w-8 h-8 text-primary flex-shrink-0 mt-1" />
+              <Sparkles className="w-8 h-8 text-primary flex-shrink-0 mt-1" />
               <div>
-                <h3 className="font-bold text-lg mb-2">Works Offline</h3>
+                <h3 className="font-bold text-lg mb-2">Multi-Agent AI System</h3>
                 <p className="text-sm text-muted-foreground">
-                  Core features available without internet. Your health companion is always there when you need it.
+                  Specialized AI agents work together to understand context, detect risks, and provide personalized guidance.
                 </p>
               </div>
             </div>
