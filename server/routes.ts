@@ -651,7 +651,7 @@ export async function registerRoutes(
     }
   });
 
-  app.post("/api/medications/ai-insights", aiGuardrails, async (req, res) => {
+  app.post("/api/medications/ai-insights", async (req, res) => {
     try {
       const user = await getCurrentUser(req);
       if (!user) {
@@ -809,7 +809,7 @@ export async function registerRoutes(
     }
   });
 
-  app.post("/api/meals/ai-insights", aiGuardrails, async (req, res) => {
+  app.post("/api/meals/ai-insights", async (req, res) => {
     try {
       const user = await getCurrentUser(req);
       if (!user) {
@@ -944,7 +944,7 @@ export async function registerRoutes(
     }
   });
 
-  app.post("/api/activities/ai-insights", aiGuardrails, async (req, res) => {
+  app.post("/api/activities/ai-insights", async (req, res) => {
     try {
       const user = await getCurrentUser(req);
       if (!user) {
@@ -1255,7 +1255,7 @@ Keep it simple and safe for elderly users.`,
     }
   });
 
-  app.post("/api/motivation/meal", aiGuardrails, async (req, res) => {
+  app.post("/api/motivation/meal", async (req, res) => {
     try {
       const user = await getCurrentUser(req);
       if (!user) {
@@ -1294,7 +1294,7 @@ Keep it simple and safe for elderly users.`,
     }
   });
 
-  app.post("/api/motivation/activity", aiGuardrails, async (req, res) => {
+  app.post("/api/motivation/activity", async (req, res) => {
     try {
       const user = await getCurrentUser(req);
       if (!user) {
@@ -1312,7 +1312,7 @@ Keep it simple and safe for elderly users.`,
     }
   });
 
-  app.post("/api/motivation/medication", aiGuardrails, async (req, res) => {
+  app.post("/api/motivation/medication", async (req, res) => {
     try {
       const user = await getCurrentUser(req);
       if (!user) {
