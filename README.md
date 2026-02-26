@@ -278,30 +278,10 @@ ElevenLabs TTS → Audio Playback
 
 ---
 
-## 📱 Screenshots
-
-<div align="center">
-  <img src="docs/screenshots/landing.png" alt="Landing Page" width="45%"/>
-  <img src="docs/screenshots/dashboard.png" alt="Dashboard" width="45%"/>
-  <img src="docs/screenshots/voice.png" alt="Voice Chat" width="45%"/>
-  <img src="docs/screenshots/meals.png" alt="Meals Tracking" width="45%"/>
-</div>
-
----
-
 ## 🌍 Supported Languages
 
 English, Spanish, French, German, Italian, Portuguese, Russian, Mandarin, Japanese, Korean, Arabic, Hindi, Bengali, Tamil, Telugu, Marathi, Gujarati, Kannada, Malayalam, Punjabi
 
----
-
-## 🔐 Security & Privacy
-
-- End-to-end encryption for sensitive data
-- HIPAA-compliant data storage
-- User-controlled data sharing
-- Secure authentication
-- Regular security audits
 
 ---
 
@@ -339,14 +319,6 @@ Built with ❤️ by the SahAI team
 - shadcn/ui for beautiful UI components
 - The open-source community for amazing tools and libraries
 - VibeFlow for inspiration and support
-
----
-
-## 📞 Contact & Support
-
-- **Website**: [Coming Soon]
-- **Email**: support@sahai.app
-- **GitHub Issues**: [Report a bug](https://github.com/adityadeshpande41/SahAI/issues)
 
 ---
 
