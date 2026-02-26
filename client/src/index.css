@@ -292,15 +292,27 @@
 }
 
 .high-contrast-mode {
+  --background: 0 0% 100%;
   --foreground: 0 0% 0%;
+  --card: 0 0% 98%;
   --card-foreground: 0 0% 0%;
-  --muted-foreground: 0 0% 20%;
+  --muted: 0 0% 92%;
+  --muted-foreground: 0 0% 15%;
+  --border: 0 0% 30%;
+  --primary: 200 100% 30%;
+  --primary-foreground: 0 0% 100%;
 }
 
 .high-contrast-mode.dark {
+  --background: 0 0% 8%;
   --foreground: 0 0% 100%;
+  --card: 0 0% 12%;
   --card-foreground: 0 0% 100%;
-  --muted-foreground: 0 0% 85%;
+  --muted: 0 0% 18%;
+  --muted-foreground: 0 0% 90%;
+  --border: 0 0% 70%;
+  --primary: 200 100% 60%;
+  --primary-foreground: 0 0% 0%;
 }
 
 @keyframes mesh-shift {
@@ -447,21 +459,25 @@
 .high-contrast-mode {
   --background: 0 0% 100%;
   --foreground: 0 0% 0%;
-  --border: 0 0% 20%;
-  --muted: 0 0% 90%;
-  --muted-foreground: 0 0% 20%;
-  --primary: 168 100% 25%;
+  --card: 0 0% 98%;
+  --card-foreground: 0 0% 0%;
+  --muted: 0 0% 92%;
+  --muted-foreground: 0 0% 15%;
+  --border: 0 0% 30%;
+  --primary: 200 100% 30%;
   --primary-foreground: 0 0% 100%;
-  filter: contrast(1.5);
 }
 
 .high-contrast-mode.dark {
-  --background: 0 0% 0%;
+  --background: 0 0% 8%;
   --foreground: 0 0% 100%;
-  --border: 0 0% 80%;
-  --muted: 0 0% 10%;
-  --muted-foreground: 0 0% 80%;
-  filter: contrast(1.5);
+  --card: 0 0% 12%;
+  --card-foreground: 0 0% 100%;
+  --muted: 0 0% 18%;
+  --muted-foreground: 0 0% 90%;
+  --border: 0 0% 70%;
+  --primary: 200 100% 60%;
+  --primary-foreground: 0 0% 0%;
 }
 
 /* Landing page animations */
