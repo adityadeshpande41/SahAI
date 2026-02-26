@@ -18,31 +18,31 @@
   --sidebar: 210 25% 97%;
   --sidebar-foreground: 215 25% 15%;
   --sidebar-border: 210 20% 90%;
-  --sidebar-primary: 200 95% 45%;
+  --sidebar-primary: 200 95% 40%;
   --sidebar-primary-foreground: 0 0% 100%;
   --sidebar-accent: 210 20% 93%;
   --sidebar-accent-foreground: 215 25% 20%;
-  --sidebar-ring: 200 95% 45%;
+  --sidebar-ring: 200 95% 40%;
   --popover: 0 0% 100%;
   --popover-foreground: 215 25% 15%;
   --popover-border: 210 20% 90%;
-  --primary: 200 95% 45%;
+  --primary: 200 95% 40%;
   --primary-foreground: 0 0% 100%;
   --secondary: 210 15% 92%;
   --secondary-foreground: 215 25% 20%;
   --muted: 210 20% 95%;
   --muted-foreground: 215 15% 45%;
   --accent: 200 90% 95%;
-  --accent-foreground: 200 95% 35%;
+  --accent-foreground: 200 95% 30%;
   --destructive: 0 85% 60%;
   --destructive-foreground: 0 0% 100%;
   --input: 210 20% 88%;
-  --ring: 200 95% 45%;
-  --chart-1: 200 95% 45%;
-  --chart-2: 160 85% 45%;
-  --chart-3: 280 85% 60%;
-  --chart-4: 40 95% 55%;
-  --chart-5: 340 85% 60%;
+  --ring: 200 95% 40%;
+  --chart-1: 200 95% 40%;
+  --chart-2: 160 85% 40%;
+  --chart-3: 280 85% 55%;
+  --chart-4: 40 95% 50%;
+  --chart-5: 340 85% 55%;
   --font-sans: "Plus Jakarta Sans", "Open Sans", sans-serif;
   --font-serif: Georgia, serif;
   --font-mono: Menlo, monospace;
@@ -394,7 +394,7 @@
   inset: 0;
   border-radius: inherit;
   padding: 1px;
-  background: linear-gradient(135deg, hsl(168 72% 40%), hsl(200 60% 50%), hsl(168 72% 40%));
+  background: linear-gradient(135deg, hsl(200 95% 40%), hsl(200 90% 50%), hsl(200 95% 40%));
   -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
   mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
   -webkit-mask-composite: xor;
@@ -430,7 +430,7 @@
 }
 
 .text-gradient {
-  background: linear-gradient(135deg, hsl(200 95% 45%), hsl(200 90% 55%));
+  background: linear-gradient(135deg, hsl(200 95% 40%), hsl(200 90% 50%));
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;

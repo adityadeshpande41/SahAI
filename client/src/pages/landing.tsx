@@ -37,9 +37,6 @@ export default function Landing() {
             <Button size="lg" onClick={handleGetStarted} className="text-lg px-10 py-7 shadow-lg hover:shadow-xl transition-all">
               Get Started Free
             </Button>
-            <Button size="lg" variant="outline" onClick={() => setLocation("/register")} className="text-lg px-10 py-7">
-              Learn More
-            </Button>
           </div>
         </div>
 
