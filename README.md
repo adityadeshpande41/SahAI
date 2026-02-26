@@ -9,6 +9,8 @@
   [![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
   [![React](https://img.shields.io/badge/React-20232A?logo=react&logoColor=61DAFB)](https://reactjs.org/)
   [![Node.js](https://img.shields.io/badge/Node.js-43853D?logo=node.js&logoColor=white)](https://nodejs.org/)
+  
+  `#ElevenLabs` `#VibeFlow` `#MultiAgenticAI` `#HealthTech` `#VoiceFirst`
 </div>
 
 ---
@@ -134,30 +136,145 @@ AI analyzes your health data to provide personalized recommendations and early w
 - **PostgreSQL** for data storage
 
 ### AI & Services
-- **OpenAI GPT-4** for conversational AI
-- **OpenAI Whisper** for speech-to-text
-- **OpenAI TTS** for text-to-speech
-- **OpenAI Vision** for image analysis
+- **OpenAI GPT-4** for conversational AI and reasoning
+- **OpenAI Whisper** for speech-to-text transcription
+- **OpenAI TTS** for text-to-speech synthesis
+- **ElevenLabs** for high-quality, natural voice synthesis
+- **OpenAI Vision** for image analysis and OCR
 - **Resend** for email notifications
 
 ---
 
-## 🤖 AI Agent Architecture
+## 🤖 Multi-Agentic AI Architecture
 
-SahAI uses a multi-agent system where specialized AI agents work together:
+SahAI's intelligence comes from a sophisticated **multi-agent system** where specialized AI agents collaborate to provide comprehensive health support. Each agent has a specific role and expertise, working together through an orchestration layer.
 
-- **Orchestrator Agent** - Routes requests to appropriate agents
-- **NLP Parser Agent** - Understands natural language inputs
-- **Medication Agent** - Manages prescriptions and reminders
-- **Nutrition Agent** - Analyzes meals and provides dietary insights
-- **Context Agent** - Maintains conversation context and memory
-- **Routine Twin Agent** - Learns patterns and detects anomalies
-- **Risk Guard Agent** - Identifies potential health risks
-- **Motivator Agent** - Provides encouragement and support
-- **Future Self Agent** - Helps with long-term health planning
-- **Learning Agent** - Continuously improves from interactions
-- **Caregiver Agent** - Manages family communication
-- **Summary Agent** - Generates health reports
+### Core Architecture
+
+```
+User Input → Orchestrator → Specialized Agents → Response Synthesis → User
+                ↓
+         Context Memory
+         Risk Guardrails
+         Ambiguity Handler
+```
+
+### Specialized AI Agents
+
+#### 🎯 Orchestrator Agent
+The central coordinator that routes user requests to appropriate specialized agents based on intent classification. Manages agent communication and response synthesis.
+
+#### 🔍 NLP Parser Agent
+**Advanced Natural Language Understanding**
+- Extracts structured data from conversational input
+- Handles ambiguous queries with context-aware disambiguation
+- Supports 20+ languages with cultural nuances
+- Identifies entities: medications, foods, symptoms, measurements
+- Parses temporal expressions ("yesterday", "last week", "3 days ago")
+- Handles colloquial language and medical terminology
+
+**Example Parsing:**
+```
+Input: "I took my BP med this morning and had dosa for breakfast"
+Output: {
+  medication: { taken: true, time: "morning", type: "blood pressure" },
+  meal: { type: "breakfast", food: "dosa", time: "morning" }
+}
+```
+
+#### ⚠️ Ambiguity Handler Agent
+**Intelligent Clarification System**
+- Detects ambiguous or incomplete user inputs
+- Generates contextual clarification questions
+- Maintains conversation flow while gathering missing information
+- Learns from user patterns to reduce future ambiguities
+
+**Example Scenarios:**
+- "I took it" → "Which medication did you take?"
+- "I'm out" → "Are you going for a walk or traveling?"
+- "Feeling weird" → "Can you describe what you're feeling? Any specific symptoms?"
+
+#### 🛡️ Risk Guard Agent
+**Proactive Health Safety System**
+- Monitors for dangerous medication interactions
+- Detects concerning symptom patterns
+- Identifies abnormal vital sign readings
+- Triggers alerts for emergency situations
+- Validates medication dosages against safe ranges
+- Flags potential allergic reactions
+
+**Safety Checks:**
+- Drug-drug interactions
+- Duplicate medication detection
+- Dangerous vital sign thresholds
+- Symptom severity escalation
+- Missed critical medications
+
+#### 💊 Medication Agent
+Manages prescriptions, dosages, schedules, and medication adherence tracking with intelligent reminders.
+
+#### 🍽️ Nutrition Agent
+Analyzes meals, calculates nutrition, provides dietary recommendations, and tracks macronutrient goals.
+
+#### 🧠 Context Agent
+Maintains conversation history, user preferences, and contextual memory across sessions for personalized interactions.
+
+#### 🔄 Routine Twin Agent
+**Your Digital Health Twin**
+- Learns your daily patterns and routines
+- Builds a baseline of normal behavior
+- Detects deviations and anomalies
+- Predicts potential health issues
+- Adapts to lifestyle changes over time
+
+#### 🎓 Learning Agent
+Continuously improves from user interactions, feedback, and outcomes to provide better recommendations.
+
+#### 💪 Motivator Agent
+Provides encouragement, celebrates achievements, and maintains user engagement with positive reinforcement.
+
+#### 🔮 Future Self Agent
+Helps with long-term health planning, goal setting, and visualizing health outcomes.
+
+#### 👨‍👩‍👧 Caregiver Agent
+Manages family communication, generates health summaries, and coordinates care with privacy controls.
+
+#### 📊 Summary Agent
+Generates comprehensive health reports, insights, and trend analysis for users and healthcare providers.
+
+### Agent Communication Protocol
+
+Agents communicate through a structured message passing system:
+1. **Intent Classification** - Orchestrator identifies user intent
+2. **Agent Selection** - Routes to appropriate specialized agent(s)
+3. **Parallel Processing** - Multiple agents can work simultaneously
+4. **Context Sharing** - Agents access shared context and memory
+5. **Response Synthesis** - Orchestrator combines agent outputs
+6. **Guardrail Validation** - Risk Guard reviews final response
+7. **User Delivery** - Natural language response with actions
+
+---
+
+## 🎙️ Voice Technology
+
+### ElevenLabs Integration
+SahAI uses **ElevenLabs** for premium voice synthesis, providing:
+- Natural, human-like voice quality
+- Multilingual support with native accents
+- Emotional tone and expression
+- Low-latency streaming for real-time conversations
+- Customizable voice profiles
+
+### Speech Pipeline
+```
+User Speech → Whisper STT → NLP Parser → Agent Processing → 
+ElevenLabs TTS → Audio Playback
+```
+
+**Fallback System:**
+- Primary: ElevenLabs for premium quality
+- Fallback: OpenAI TTS for reliability
+- Browser: Native speech synthesis for offline support
 
 ---
 
@@ -218,8 +335,10 @@ Built with ❤️ by the SahAI team
 ## 🙏 Acknowledgments
 
 - OpenAI for GPT-4, Whisper, and Vision APIs
+- ElevenLabs for premium voice synthesis technology
 - shadcn/ui for beautiful UI components
 - The open-source community for amazing tools and libraries
+- VibeFlow for inspiration and support
 
 ---
 
