@@ -367,9 +367,16 @@ export default function Voice() {
   return (
     <div className="flex flex-col h-[calc(100vh-8rem)] md:h-[calc(100vh-6rem)] animate-fade-in">
       <div className="flex items-center justify-between gap-1 mb-4">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight text-gradient" data-testid="text-voice-title">Talk to SahAI</h1>
-          <p className="text-sm text-muted-foreground mt-0.5">Your health conversation assistant</p>
+        <div className="flex items-center gap-3">
+          <img 
+            src="/SahAI.png" 
+            alt="SahAI Logo" 
+            className="w-10 h-10 object-contain"
+          />
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight text-gradient" data-testid="text-voice-title">Talk to SahAI</h1>
+            <p className="text-sm text-muted-foreground mt-0.5">Your health conversation assistant</p>
+          </div>
         </div>
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-2">

@@ -31,7 +31,7 @@ export default function Landing() {
           </p>
           <p className="text-xl text-muted-foreground max-w-3xl mx-auto mb-10 leading-relaxed">
             Experience the future of health management with intelligent voice conversations, 
-            personalized insights, and proactive care—designed for everyone who values their wellbeing.
+            personalized insights, and proactive care designed for everyone who values their wellbeing.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
             <Button size="lg" onClick={handleGetStarted} className="text-lg px-10 py-7 shadow-lg hover:shadow-xl transition-all">
@@ -71,7 +71,7 @@ export default function Landing() {
                 </div>
                 <h3 className="font-bold text-lg mb-2 text-center">Voice-First Conversations</h3>
                 <p className="text-sm text-muted-foreground text-center">
-                  Talk naturally in 20+ languages—AI understands context and remembers your preferences
+                  Talk naturally in 20+ languages. AI understands context and remembers your preferences
                 </p>
               </CardContent>
             </Card>
@@ -83,7 +83,7 @@ export default function Landing() {
                 </div>
                 <h3 className="font-bold text-lg mb-2 text-center">Smart Photo Analysis</h3>
                 <p className="text-sm text-muted-foreground text-center">
-                  Snap a photo of your meal or prescription—AI extracts nutrition info and medication details
+                  Snap a photo of your meal or prescription. AI extracts nutrition info and medication details
                 </p>
               </CardContent>
             </Card>
@@ -107,7 +107,7 @@ export default function Landing() {
                 </div>
                 <h3 className="font-bold text-lg mb-2 text-center">Proactive Reminders</h3>
                 <p className="text-sm text-muted-foreground text-center">
-                  Smart notifications for medications, meals, and activities—never miss what matters
+                  Smart notifications for medications, meals, and activities. Never miss what matters
                 </p>
               </CardContent>
             </Card>
@@ -145,7 +145,7 @@ export default function Landing() {
               <div>
                 <h3 className="font-bold text-lg mb-2">Privacy-First Architecture</h3>
                 <p className="text-sm text-muted-foreground">
-                  End-to-end encryption, HIPAA-compliant storage, and you control who sees your data—always.
+                  End-to-end encryption, HIPAA-compliant storage, and you control who sees your data. Always.
                 </p>
               </div>
             </div>
@@ -165,7 +165,7 @@ export default function Landing() {
               <div>
                 <h3 className="font-bold text-lg mb-2">Works Offline</h3>
                 <p className="text-sm text-muted-foreground">
-                  Core features available without internet—your health companion is always there when you need it.
+                  Core features available without internet. Your health companion is always there when you need it.
                 </p>
               </div>
             </div>
@@ -175,7 +175,7 @@ export default function Landing() {
               <div>
                 <h3 className="font-bold text-lg mb-2">Intelligent Notifications</h3>
                 <p className="text-sm text-muted-foreground">
-                  Context-aware reminders that adapt to your schedule and habits—helpful, not annoying.
+                  Context-aware reminders that adapt to your schedule and habits. Helpful, not annoying.
                 </p>
               </div>
             </div>
@@ -185,7 +185,7 @@ export default function Landing() {
               <div>
                 <h3 className="font-bold text-lg mb-2">For Everyone</h3>
                 <p className="text-sm text-muted-foreground">
-                  Whether you're managing chronic conditions, staying fit, or caring for loved ones—SahAI adapts to you.
+                  Whether you're managing chronic conditions, staying fit, or caring for loved ones, SahAI adapts to you.
                 </p>
               </div>
             </div>
@@ -203,9 +203,6 @@ export default function Landing() {
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
                 <Button size="lg" onClick={handleGetStarted} className="text-lg px-10 py-7 shadow-lg">
                   Start Free Today
-                </Button>
-                <Button size="lg" variant="outline" onClick={() => window.open("https://github.com/adityadeshpande41/SahAI", "_blank")} className="text-lg px-10 py-7">
-                  View on GitHub
                 </Button>
               </div>
             </CardContent>
