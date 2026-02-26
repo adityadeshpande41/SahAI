@@ -9,6 +9,9 @@
   [![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
   [![React](https://img.shields.io/badge/React-20232A?logo=react&logoColor=61DAFB)](https://reactjs.org/)
   [![Node.js](https://img.shields.io/badge/Node.js-43853D?logo=node.js&logoColor=white)](https://nodejs.org/)
+
+Development History
+SahAI was initially prototyped using VibeFlow, which enabled rapid development of the core health tracking features. However, to implement advanced capabilities such as the multi-agent AI architecture, custom photo analysis, and complex orchestration logic, we transitioned to traditional development using VS Code. This migration provided the flexibility needed to build a production-grade health companion with sophisticated AI capabilities.
   
   `#ElevenLabs` `#VibeFlow` `#MultiAgenticAI` `#HealthTech` `#VoiceFirst`
 </div>
