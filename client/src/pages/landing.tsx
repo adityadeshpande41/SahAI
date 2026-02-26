@@ -16,9 +16,11 @@ export default function Landing() {
       <div className="container mx-auto px-4 py-16">
         <div className="text-center mb-16">
           <div className="flex items-center justify-center gap-3 mb-6">
-            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary to-primary/70 flex items-center justify-center shadow-lg">
-              <Heart className="w-8 h-8 text-primary-foreground" />
-            </div>
+            <img 
+              src="/SahAI.png" 
+              alt="SahAI Logo" 
+              className="w-16 h-16 object-contain"
+            />
             <h1 className="text-5xl font-bold tracking-tight text-gradient">SahAI</h1>
           </div>
           <p className="text-2xl text-muted-foreground mb-4">Your Personal Health Copilot</p>

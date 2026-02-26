@@ -110,9 +110,11 @@ export default function Register() {
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
           <div className="flex items-center justify-center gap-3 mb-4">
-            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary to-primary/70 flex items-center justify-center shadow-lg">
-              <Heart className="w-6 h-6 text-primary-foreground" />
-            </div>
+            <img 
+              src="/SahAI.png" 
+              alt="SahAI Logo" 
+              className="w-12 h-12 object-contain"
+            />
             <h1 className="text-3xl font-bold tracking-tight text-gradient">SahAI</h1>
           </div>
           <CardTitle className="text-xl">Create Your Account</CardTitle>
