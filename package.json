@@ -10,6 +10,7 @@
     "check": "tsc",
     "db:push": "drizzle-kit push",
     "db:setup": "tsx --env-file=.env scripts/setup-db.ts",
+    "db:migrate-pgvector": "tsx --env-file=.env scripts/migrate-pgvector.ts",
     "db:studio": "drizzle-kit studio"
   },
   "dependencies": {

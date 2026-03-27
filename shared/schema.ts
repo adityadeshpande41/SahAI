@@ -1,7 +1,17 @@
 import { sql } from "drizzle-orm";
-import { pgTable, text, varchar, timestamp, integer, boolean, jsonb, real, index } from "drizzle-orm/pg-core";
+import { pgTable, text, varchar, timestamp, integer, boolean, jsonb, real, index, customType } from "drizzle-orm/pg-core";
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import { z } from "zod";
+
+// pgvector custom type — stores as vector(1536) in Postgres
+const vector = (name: string, dimensions: number) =>
+  customType<{ data: number[]; driverData: string }>({
+    dataType() { return `vector(${dimensions})`; },
+    toDriver(value: number[]): string { return `[${value.join(",")}]`; },
+    fromDriver(value: string): number[] {
+      return value.replace(/[\[\]]/g, "").split(",").map(Number);
+    },
+  })(name);
 
 // Users
 export const users = pgTable("users", {
@@ -253,18 +263,20 @@ export const ambiguityAliases = pgTable("ambiguity_aliases", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
-// Vector Memory (RAG)
+// Vector Memory (RAG) — uses pgvector for native ANN search
 export const vectorMemory = pgTable("vector_memory", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
-  memoryType: text("memory_type").notNull(), // routine_pattern, medication_info, symptom_pattern
+  memoryType: text("memory_type").notNull(), // routine_pattern, medication_info, symptom_pattern, nutrition_pattern, conversation_qa
   content: text("content").notNull(),
-  embedding: jsonb("embedding"), // store as JSON array for now, migrate to pgvector later
+  embedding: vector("embedding", 1536), // text-embedding-3-small = 1536 dims
   metadata: jsonb("metadata"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 }, (table) => ({
   userIdx: index("vector_memory_user_idx").on(table.userId),
   typeIdx: index("vector_memory_type_idx").on(table.memoryType),
+  // HNSW index for fast approximate nearest-neighbor search
+  // Created via raw SQL in migration — Drizzle doesn't generate this automatically
 }));
 
 // Conversation History

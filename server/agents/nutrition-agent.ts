@@ -12,7 +12,7 @@ export class NutritionAgent extends BaseAgent {
 
   async execute(
     input: {
-      action: "analyze_photo" | "get_recommendations" | "track_nutrition" | "check_diet_compliance";
+      action: "analyze_photo" | "get_recommendations" | "track_nutrition" | "check_diet_compliance" | "explain_food";
       data?: any;
     },
     context: AgentContext
@@ -29,6 +29,8 @@ export class NutritionAgent extends BaseAgent {
           return await this.trackNutrition(input.data, context);
         case "check_diet_compliance":
           return await this.checkDietCompliance(context);
+        case "explain_food":
+          return await this.explainFood(input.data, context);
         default:
           return { success: false, message: "Unknown action" };
       }
@@ -278,6 +280,61 @@ Consider medication interactions (e.g., blood thinners + leafy greens, diabetes 
       success: true,
       data: compliance,
     };
+  }
+
+  private async explainFood(
+    data: { foodName: string; question: string },
+    context: AgentContext
+  ): Promise<AgentResponse> {
+    const { foodName, question } = data;
+
+    // Check RAG first — if we've analyzed this food before, use that
+    const ragResults = await this.ragAgent.execute(
+      { query: `nutrition information ${foodName}`, memoryTypes: ["nutrition_pattern"], topK: 2 },
+      context
+    );
+    const ragContext = ragResults.success && ragResults.data?.length
+      ? this.ragAgent.buildContext(ragResults.data)
+      : "";
+
+    // Get user's medications to flag food-drug interactions
+    const medications = await storage.getUserMedications(context.user.id);
+    const medNames = medications.map(m => m.name).join(", ") || "none";
+
+    const lang = context.user.language || "English";
+
+    const res = await this.callOpenAI([
+      {
+        role: "system",
+        content: `You are a nutrition educator for a senior health app. Answer food questions clearly and practically.
+Language: ${lang}. Age group: ${context.user.ageGroup}.
+User's medications: ${medNames}
+
+${ragContext ? `Prior nutrition context for this user:\n${ragContext}\n` : ""}
+
+For food questions, cover:
+1. Key nutrients (calories, protein, carbs, fat, fiber — give actual numbers per 100g)
+2. Main health benefits
+3. Any concerns for seniors (sodium, sugar, glycemic index)
+4. Medication interactions if relevant (e.g., grapefruit + statins, leafy greens + warfarin)
+5. Practical tip (best way to eat it, portion size)
+
+Be specific with numbers. Keep it to 4-5 sentences or a short list. Warm and encouraging tone.`,
+      },
+      { role: "user", content: question },
+    ], { temperature: 0.6, max_tokens: 400 });
+
+    const reply = res.choices[0].message.content.trim();
+
+    // Store in RAG so future similar questions can be answered from memory
+    await this.ragAgent.storeMemory(
+      context.user.id,
+      "nutrition_pattern",
+      `Food info: ${foodName} — ${reply.slice(0, 200)}`,
+      { source: "food_question", foodName }
+    );
+
+    return { success: true, data: { reply } };
   }
 
   async getMealImprovementSuggestions(

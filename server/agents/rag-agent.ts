@@ -23,43 +23,26 @@ export class RAGAgent extends BaseAgent {
     this.log(`RAG query: "${input.query}"`);
 
     try {
-      // Generate embedding for query
+      // Generate embedding for the query
       const queryEmbedding = await this.generateEmbedding(input.query);
 
-      // Retrieve relevant memories
-      const memories = await storage.getVectorMemories(
+      // Native pgvector ANN search — single SQL query, uses HNSW index
+      // Falls back to JS cosine in MemStorage (dev/test)
+      const results = await storage.searchVectorMemories(
         context.user.id,
-        input.memoryTypes
+        queryEmbedding,
+        input.topK || 5,
+        input.memoryTypes,
       );
-
-      // Calculate similarities and rank
-      const results: RAGResult[] = memories
-        .map(memory => ({
-          content: memory.content,
-          memoryType: memory.memoryType,
-          similarity: this.cosineSimilarity(
-            queryEmbedding,
-            memory.embedding as number[]
-          ),
-          metadata: memory.metadata,
-        }))
-        .sort((a, b) => b.similarity - a.similarity)
-        .slice(0, input.topK || 5);
 
       return {
         success: true,
         data: results,
-        metadata: {
-          totalMemories: memories.length,
-          retrieved: results.length,
-        },
+        metadata: { retrieved: results.length },
       };
     } catch (error: any) {
       this.log(`Error in RAG retrieval: ${error.message}`, "error");
-      return {
-        success: false,
-        message: "Failed to retrieve memories",
-      };
+      return { success: false, message: "Failed to retrieve memories" };
     }
   }
 

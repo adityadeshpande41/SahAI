@@ -498,10 +498,10 @@ export class DatabaseStorage implements IStorage {
       .values({ userId, ...data });
   }
 
-  // Vector Memory
+  // Vector Memory — native pgvector ANN search
   async getVectorMemories(userId: string, memoryTypes?: string[]): Promise<any[]> {
     if (!this.db) return [];
-    
+
     if (memoryTypes && memoryTypes.length > 0) {
       return await this.db.select().from(schema.vectorMemory)
         .where(and(
@@ -509,9 +509,43 @@ export class DatabaseStorage implements IStorage {
           sql`${schema.vectorMemory.memoryType} = ANY(${memoryTypes})`
         ));
     }
-    
+
     return await this.db.select().from(schema.vectorMemory)
       .where(eq(schema.vectorMemory.userId, userId));
+  }
+
+  // Native pgvector similarity search — replaces JS cosine loop
+  // Uses HNSW index: sub-millisecond even at millions of rows
+  async searchVectorMemories(
+    userId: string,
+    queryEmbedding: number[],
+    topK: number = 5,
+    memoryTypes?: string[],
+  ): Promise<Array<{ content: string; memoryType: string; similarity: number; metadata: any }>> {
+    if (!this.db) return [];
+
+    const vectorLiteral = `[${queryEmbedding.join(",")}]`;
+
+    const typeFilter = memoryTypes && memoryTypes.length > 0
+      ? sql`AND memory_type = ANY(ARRAY[${sql.join(memoryTypes.map(t => sql`${t}`), sql`, `)}])`
+      : sql``;
+
+    // <=> is cosine distance in pgvector; 1 - distance = similarity
+    const results = await this.db.execute(sql`
+      SELECT
+        content,
+        memory_type   AS "memoryType",
+        metadata,
+        1 - (embedding <=> ${vectorLiteral}::vector) AS similarity
+      FROM vector_memory
+      WHERE user_id = ${userId}
+        ${typeFilter}
+        AND embedding IS NOT NULL
+      ORDER BY embedding <=> ${vectorLiteral}::vector
+      LIMIT ${topK};
+    `);
+
+    return results.rows as any[];
   }
 
   async createVectorMemory(userId: string, data: any): Promise<void> {

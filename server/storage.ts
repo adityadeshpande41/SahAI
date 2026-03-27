@@ -78,6 +78,7 @@ export interface IStorage {
   // Vector Memory (RAG)
   getVectorMemories(userId: string, memoryTypes?: string[]): Promise<any[]>;
   createVectorMemory(userId: string, data: any): Promise<void>;
+  searchVectorMemories(userId: string, queryEmbedding: number[], topK?: number, memoryTypes?: string[]): Promise<Array<{ content: string; memoryType: string; similarity: number; metadata: any }>>;
 
   // Caregivers
   getCaregiverContacts(userId: string): Promise<CaregiverContact[]>;
@@ -567,6 +568,35 @@ export class MemStorage implements IStorage {
       createdAt: new Date(),
     };
     this.vectorMemories.set(id, memory);
+  }
+
+  // MemStorage fallback — JS cosine similarity (dev/test only)
+  async searchVectorMemories(
+    userId: string,
+    queryEmbedding: number[],
+    topK: number = 5,
+    memoryTypes?: string[],
+  ): Promise<Array<{ content: string; memoryType: string; similarity: number; metadata: any }>> {
+    let memories = Array.from(this.vectorMemories.values()).filter(m => m.userId === userId);
+    if (memoryTypes?.length) memories = memories.filter(m => memoryTypes.includes(m.memoryType));
+
+    const cosineSim = (a: number[], b: number[]): number => {
+      if (!a || !b || a.length !== b.length) return 0;
+      let dot = 0, na = 0, nb = 0;
+      for (let i = 0; i < a.length; i++) { dot += a[i] * b[i]; na += a[i] ** 2; nb += b[i] ** 2; }
+      return dot / (Math.sqrt(na) * Math.sqrt(nb));
+    };
+
+    return memories
+      .filter(m => m.embedding)
+      .map(m => ({
+        content: m.content,
+        memoryType: m.memoryType,
+        similarity: cosineSim(queryEmbedding, m.embedding),
+        metadata: m.metadata,
+      }))
+      .sort((a, b) => b.similarity - a.similarity)
+      .slice(0, topK);
   }
 
   // Caregivers

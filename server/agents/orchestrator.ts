@@ -1,678 +1,582 @@
 import { BaseAgent, type AgentContext, type AgentResponse } from "./base-agent";
-import { NLPParserAgent } from "./nlp-parser-agent";
-import { AmbiguityHandlerAgent } from "./ambiguity-handler-agent";
-import { RoutineTwinAgent } from "./routine-twin-agent";
-import { RiskGuardAgent } from "./risk-guard-agent";
+import { runAgentGraph, type ParsedIntent } from "./graph/agent-graph";
+import {
+  guardrailCheck,
+  actionDetect,
+  ragLookup,
+  offTopicReply,
+} from "./pipeline/message-pipeline";
 import { RAGAgent } from "./rag-agent";
+import { RoutineTwinAgent } from "./routine-twin-agent";
+import { ContextAgent } from "./context-agent";
 import { MedicationAgent } from "./medication-agent";
 import { NutritionAgent } from "./nutrition-agent";
-import { SummaryAgent } from "./summary-agent";
-import { CaregiverAgent } from "./caregiver-agent";
-import { ContextAgent } from "./context-agent";
 import { storage } from "../storage";
 import type { User } from "@shared/schema";
 
 interface OrchestratorInput {
   userId: string;
   userInput: string;
-  conversationId?: string;
 }
 
-interface OrchestratorResponse {
-  reply: string;
-  needsFollowUp: boolean;
-  followUpQuestion?: string;
-  data?: any;
-  actions?: string[]; // What actions were taken
-}
+// ─── Route classification result ─────────────────────────────────────────────
+// One LLM call that does BOTH health-check AND intent extraction.
+// Returns route so the orchestrator can dispatch without a second call.
+
+type Route =
+  | { type: "off_topic" }
+  | { type: "greeting" }
+  | { type: "translation"; targetLanguage: string }
+  | { type: "simple_question" }
+  | { type: "single_action"; intent: ParsedIntent }
+  | { type: "compound"; intents: ParsedIntent[] };
+
+// ─── Orchestrator ─────────────────────────────────────────────────────────────
 
 export class AgentOrchestrator extends BaseAgent {
-  private nlpParser: NLPParserAgent;
-  private ambiguityHandler: AmbiguityHandlerAgent;
-  private routineTwin: RoutineTwinAgent;
-  private riskGuard: RiskGuardAgent;
-  private ragAgent: RAGAgent;
-  private medicationAgent: MedicationAgent;
-  private nutritionAgent: NutritionAgent;
-  private summaryAgent: SummaryAgent;
-  private caregiverAgent: CaregiverAgent;
-  private contextAgent: ContextAgent;
+  private ragAgent        = new RAGAgent();
+  private routineTwin     = new RoutineTwinAgent();
+  private contextAgent    = new ContextAgent();
+  private medicationAgent = new MedicationAgent();
+  private nutritionAgent  = new NutritionAgent();
 
-  constructor() {
-    super("AgentOrchestrator");
-    this.nlpParser = new NLPParserAgent();
-    this.ambiguityHandler = new AmbiguityHandlerAgent();
-    this.routineTwin = new RoutineTwinAgent();
-    this.riskGuard = new RiskGuardAgent();
-    this.ragAgent = new RAGAgent();
-    this.medicationAgent = new MedicationAgent();
-    this.nutritionAgent = new NutritionAgent();
-    this.summaryAgent = new SummaryAgent();
-    this.caregiverAgent = new CaregiverAgent();
-    this.contextAgent = new ContextAgent();
-  }
+  constructor() { super("AgentOrchestrator"); }
 
   async execute(input: OrchestratorInput, context: AgentContext): Promise<AgentResponse> {
-    this.log(`Orchestrating request for user ${input.userId}`);
-    this.log(`User language preference: ${context.user.language || "not set"}`);
-    this.log(`User object: ${JSON.stringify(context.user)}`);
+    this.log(`Routing: "${input.userInput}"`);
+
+    // Persist user message + fetch ALL context IN PARALLEL — zero sequential overhead
+    const [, conversationHistory, userMeds, todayMeds, recentMeals, recentSymptoms, recentVitals] = await Promise.all([
+      storage.createConversationMessage(input.userId, {
+        sender: "user", message: input.userInput, metadata: {},
+      }),
+      storage.getRecentConversation(input.userId, 8),
+      storage.getUserMedications(input.userId),
+      storage.getTodayMedications(input.userId),
+      storage.getRecentMeals(input.userId, 1),
+      storage.getRecentSymptoms(input.userId, 1),
+      storage.getRecentVitals(input.userId, "blood_sugar", 1).catch(() => [] as any[]),
+    ]);
+
+    let reply: string;
 
     try {
-      // Store user message
-      await storage.createConversationMessage(input.userId, {
-        sender: "user",
-        message: input.userInput,
-        metadata: {},
-      });
+      // ── Layer 1: Guardrails (regex, <1ms, zero LLM) ──────────────────────
+      const guardrail = guardrailCheck(input.userInput);
+      if (guardrail) {
+        this.log(`Guardrail hit: ${guardrail.outcome}`);
+        switch (guardrail.outcome) {
+          case "off_topic":
+            reply = offTopicReply();
+            break;
+          case "greeting":
+            reply = await this.handleGreeting(input.userInput, context);
+            break;
+          case "translation":
+            reply = await this.handleTranslation(guardrail.targetLanguage!, conversationHistory);
+            break;
+        }
+        return this.saveAndReturn(input.userId, reply!, context, { stage: "guardrail" });
+      }
 
-      // Get conversation history for context
-      const conversationHistory = await storage.getRecentConversation(input.userId, 10);
-
-      // Step 1: Check if this is a translation request
-      const translationMatch = input.userInput.match(/translate\s+(?:the\s+)?last\s+message\s+to\s+(\w+)/i);
-      if (translationMatch) {
-        const targetLanguage = translationMatch[1];
-        this.log(`Translation request detected: ${targetLanguage}`);
-        
-        // Get the last AI message from conversation history
-        const lastAIMessage = [...conversationHistory].reverse().find(msg => msg.sender === "sahai");
-        
-        if (lastAIMessage) {
-          // Use LLM to translate
-          const translationResult = await this.callOpenAI([
-            { 
-              role: "system", 
-              content: `You are a professional translator. Translate the given text to ${targetLanguage}. 
-              
-CRITICAL RULES:
-- Provide ONLY the translation in ${targetLanguage}
-- Do NOT add any explanations, apologies, or meta-commentary
-- Do NOT say things like "I can only communicate in English"
-- Just translate the text directly and naturally
-- Maintain the same tone and meaning as the original` 
-            },
-            { 
-              role: "user", 
-              content: `Translate this to ${targetLanguage}:\n\n${lastAIMessage.message}` 
-            }
-          ], {
-            temperature: 0.3,
-            max_tokens: 500,
-          });
-
-          const translation = translationResult.choices[0].message.content.trim();
-          
-          await storage.createConversationMessage(input.userId, {
-            sender: "sahai",
-            message: translation,
-            metadata: { isTranslation: true, targetLanguage },
-          });
-          
-          return {
-            success: true,
-            data: {
-              reply: translation,
-              needsFollowUp: false,
-            },
-          };
+      // ── Layer 2: Action Detector (regex entity extraction, zero LLM) ─────
+      const actionResult = actionDetect(input.userInput);
+      if (actionResult && actionResult.stage === "action") {
+        this.log(`Action detected via regex: ${actionResult.outcome} — ${actionResult.intents.map(i => i.type).join(", ")}`);
+        if (actionResult.outcome === "single_action") {
+          reply = await this.dispatchSingleAction(actionResult.intents[0], input.userInput, context);
         } else {
-          const noMessageReply = "I don't have a previous message to translate. Please ask me a question first!";
-          await storage.createConversationMessage(input.userId, {
-            sender: "sahai",
-            message: noMessageReply,
-            metadata: {},
-          });
-          
-          return {
-            success: true,
-            data: {
-              reply: noMessageReply,
-              needsFollowUp: false,
-            },
-          };
+          const graphResult = await runAgentGraph(actionResult.intents, input.userInput, context);
+          reply = graphResult.reply;
         }
+        return this.saveAndReturn(input.userId, reply, context, { stage: "action" });
       }
 
-      // Step 2: Check if question is health-related
-      const isHealthRelated = await this.checkHealthTopic(input.userInput);
-      
-      if (!isHealthRelated) {
-        const politeDecline = this.getPoliteDecline(context.user.language || undefined);
-        await storage.createConversationMessage(input.userId, {
-          sender: "sahai",
-          message: politeDecline,
-          metadata: { offTopic: true },
-        });
-        
-        return {
-          success: true,
-          data: {
-            reply: politeDecline,
-            needsFollowUp: false,
-          },
-        };
+      // ── Layer 3: RAG Lookup (vector similarity, no LLM for known questions) ─
+      const ragResult = await ragLookup(input.userInput, context, this.ragAgent);
+      if (ragResult && ragResult.stage === "rag") {
+        this.log(`RAG hit (similarity >= threshold) — answering from memory`);
+        return this.saveAndReturn(input.userId, ragResult.reply, context, { stage: "rag" });
       }
 
-      // Step 2: Parse user input with NLP
-      const parseResult = await this.nlpParser.execute(
-        { text: input.userInput },
-        context
-      );
+      // ── Layer 4: LLM Classifier (only ambiguous messages reach here) ──────
+      this.log(`Falling through to LLM classifier`);
+      const snapshot = this.buildContextSnapshot(todayMeds, recentMeals, recentSymptoms, recentVitals);
+      const route = await this.classify(input.userInput, userMeds, conversationHistory, snapshot);
+      this.log(`LLM route: ${route.type}`);
 
-      // Always treat as question and use full context - simpler and more reliable
-      this.log("Processing as contextual question with user data");
-      const response = await this.handleQuestion(
-        { type: "question", entities: { question: input.userInput } },
-        context,
-        []
-      );
-      
-      await storage.createConversationMessage(input.userId, {
-        sender: "sahai",
-        message: response.reply,
-        metadata: {},
-      });
-      
-      // Update routine twin and check risks (async, don't wait)
-      this.updateTwinAndCheckRisks(context).catch(err => 
-        this.log(`Background twin/risk update failed: ${err.message}`, "error")
-      );
-      
-      return {
-        success: true,
-        data: response,
-      };
-    } catch (error: any) {
-      this.log(`Orchestration error: ${error.message}`, "error");
-      
-      // Fallback response
-      const fallbackMessage = this.getFallbackResponse(context.user.language || undefined);
-      await storage.createConversationMessage(input.userId, {
-        sender: "sahai",
-        message: fallbackMessage,
-        metadata: { error: true },
-      });
-      
-      return {
-        success: true,
-        data: {
-          reply: fallbackMessage,
-          needsFollowUp: false,
-        },
-      };
+      switch (route.type) {
+        case "off_topic":
+          reply = offTopicReply();
+          break;
+        case "greeting":
+          reply = await this.handleGreeting(input.userInput, context);
+          break;
+        case "translation":
+          reply = await this.handleTranslation(route.targetLanguage!, conversationHistory);
+          break;
+        case "simple_question":
+          reply = await this.answerQuestion(input.userInput, context, conversationHistory);
+          break;
+        case "single_action":
+          reply = await this.dispatchSingleAction(route.intent, input.userInput, context);
+          break;
+        case "compound":
+          const graphResult = await runAgentGraph(route.intents, input.userInput, context);
+          reply = graphResult.reply;
+          break;
+        default:
+          reply = await this.answerQuestion(input.userInput, context, conversationHistory);
+      }
+    } catch (err: any) {
+      this.log(`Orchestration error: ${err.message}`, "error");
+      reply = this.fallbackReply(context.user.language);
     }
+
+    return this.saveAndReturn(input.userId, reply!, context, {});
   }
 
-  private async checkHealthTopic(userInput: string): Promise<boolean> {
-    // Allow translation requests - they should always pass through
-    const lowerInput = userInput.toLowerCase();
-    if (lowerInput.includes("translate") && lowerInput.includes("last message")) {
-      this.log("Translation request detected - allowing through");
-      return true;
-    }
-    
-    // Allow other language-related requests
-    if (lowerInput.includes("say that in") ||
-        lowerInput.includes("in hindi") ||
-        lowerInput.includes("in my language") ||
-        lowerInput.includes("repeat")) {
-      return true;
-    }
-    
-    // Allow greetings and casual conversation starters - be friendly!
-    const greetings = [
-      "hi", "hello", "hey", "good morning", "good afternoon", "good evening",
-      "how are you", "what's up", "how's it going", "how do you do",
-      "greetings", "howdy", "sup", "yo"
-    ];
-    
-    if (greetings.some(greeting => lowerInput.includes(greeting))) {
-      this.log("Greeting detected - allowing through for friendly response");
-      return true;
-    }
-    
-    try {
-      const response = await this.callOpenAI([
-        {
-          role: "system",
-          content: `You are a health topic classifier for a senior health companion app. Determine if the user's message is related to health, wellness, medical topics, or daily living activities.
-
-IMPORTANT: The user may write in ANY language (English, Hindi, Marathi, Tamil, etc.). You must understand and classify messages in all languages.
-
-CRITICAL: Be WELCOMING and CONVERSATIONAL. Greetings, check-ins, and casual conversation are ALWAYS allowed.
-
-Health-related topics include:
-- Medications, symptoms, pain, discomfort
-- Meals, nutrition, diet, hydration, food (ANY food questions like "can I eat pizza", "should I eat X", "is Y healthy")
-- Activities, exercise, mobility, workout
-- Sleep, rest, fatigue
-- Doctor visits, medical appointments
-- General wellbeing, mood, feelings
-- Daily routines, habits
-- Caregiving, family health concerns
-- Questions about what to eat, drink, or do for health
-- Food choices and meal planning (e.g., "can I eat pizza", "should I have pasta")
-- Greetings and check-ins (e.g., "how are you", "hello", "good morning")
-- Casual conversation about their day or wellbeing
-
-CRITICAL: ANY question about eating, food, meals, or nutrition is ALWAYS health-related, even if it's about pizza, burgers, or any other food.
-CRITICAL: Greetings and friendly check-ins are ALWAYS allowed - we want to be warm and welcoming!
-
-Non-health topics include:
-- Politics, news, current events (unless health-related)
-- Sports scores, entertainment (unless asking about exercise)
-- Weather (unless related to health impact)
-- General knowledge questions unrelated to health
-- Technology help (unless health device)
-- Financial advice
-- Travel planning (unless health-related)
-
-Examples:
-- "Hey, how are you?" - YES (friendly greeting)
-- "Good morning!" - YES (greeting)
-- "Can I eat pizza now?" - YES (food/nutrition)
-- "Should I eat pasta for dinner?" - YES (meal planning)
-- "What should I eat for protein?" - YES (nutrition)
-- "Is it okay to have ice cream?" - YES (food choice)
-- "Who won the election?" - NO (politics)
-- "What's the capital of France?" - NO (general knowledge)
-- "How do I fix my phone?" - NO (technology)
-
-Respond with ONLY "yes" or "no".`
-        },
-        {
-          role: "user",
-          content: userInput
-        }
-      ], {
-        temperature: 0.1,
-        max_tokens: 10,
-      });
-
-      const answer = response.choices[0].message.content.toLowerCase().trim();
-      const isHealthRelated = answer.includes("yes");
-      this.log(`Health topic check for "${userInput}": ${isHealthRelated ? "YES" : "NO"}`);
-      return isHealthRelated;
-    } catch (error) {
-      // If classification fails, allow the message (fail open)
-      this.log(`Health topic check failed: ${error}`, "error");
-      return true;
-    }
-  }
-
-  private getPoliteDecline(language?: string): string {
-    // If not English, use the LLM to generate the response in the user's language
-    if (language && language !== "English") {
-      // For now, return a generic message that will be handled by the main LLM
-      // This is a fallback - ideally this shouldn't be called often
-      return `I'm here to help with your health and wellness. Let's talk about your medications, meals, or how you're feeling today!`;
-    }
-    
-    const responses = [
-      "I'm here to help with your health and wellness. Let's talk about your medications, meals, or how you're feeling today!",
-      "I focus on health topics to give you the best support. How about we discuss your routine, symptoms, or nutrition?",
-      "That's outside my area of expertise. I'm best at helping with your health, medications, and daily wellness. What can I help you with today?",
-      "I'm your health companion, so I focus on wellness topics. Would you like to talk about your meals, medications, or how you're feeling?",
-      "Let's keep our conversation focused on your health and wellbeing. Is there anything about your routine, symptoms, or medications I can help with?",
-    ];
-    return responses[Math.floor(Math.random() * responses.length)];
-  }
-
-  private getFallbackResponse(language?: string): string {
-    // For non-English, return generic message - the main LLM will handle translation
-    if (language && language !== "English") {
-      return "I'm having a bit of trouble understanding. Could you rephrase that? Or try asking about your medications, meals, or how you're feeling.";
-    }
-    
-    const responses = [
-      "I'm having a bit of trouble understanding. Could you rephrase that? Or try asking about your medications, meals, or how you're feeling.",
-      "Hmm, I didn't quite catch that. Can you tell me more? I'm here to help with your health and daily routine.",
-      "I want to make sure I understand you correctly. Could you say that differently? I can help with medications, symptoms, meals, and more.",
-      "Let me make sure I got that right. Could you explain a bit more? I'm here for your health questions and daily check-ins.",
-    ];
-    return responses[Math.floor(Math.random() * responses.length)];
-  }
-
-  private async routeToAgent(intent: any, context: AgentContext): Promise<OrchestratorResponse> {
-    const actions: string[] = [];
-
-    switch (intent.type) {
-      case "med_taken":
-        return await this.handleMedicationTaken(intent, context, actions);
-      
-      case "meal_logged":
-        return await this.handleMealLogged(intent, context, actions);
-      
-      case "symptom_reported":
-        return await this.handleSymptomReported(intent, context, actions);
-      
-      case "activity_started":
-      case "activity_ended":
-        return await this.handleActivity(intent, context, actions);
-      
-      case "question":
-        return await this.handleQuestion(intent, context, actions);
-      
-      default:
-        return {
-          reply: "I noted that. Is there anything else I can help you with?",
-          needsFollowUp: false,
-          actions,
-        };
-    }
-  }
-
-  private async handleMedicationTaken(intent: any, context: AgentContext, actions: string[]): Promise<OrchestratorResponse> {
-    const medName = intent.entities.medication;
-    const time = intent.entities.time || new Date();
-
-    // Find the medication
-    const medication = await storage.getMedicationByName(context.user.id, medName);
-    if (!medication) {
-      return {
-        reply: `Hmm, I don't see ${medName} in your medication list. Would you like me to add it? Or maybe you meant a different name?`,
-        needsFollowUp: true,
-      };
-    }
-
-    // Mark as taken
-    await storage.markMedicationTaken(context.user.id, medication.id, time);
-    actions.push("medication_logged");
-
-    // Check if taken late
-    const scheduled = await storage.getTodayMedicationSchedule(context.user.id, medication.id);
-    const scheduledTime = scheduled ? new Date(scheduled.scheduledTime) : null;
-    const isLate = scheduledTime && (new Date(time).getTime() - scheduledTime.getTime()) > 3600000; // 1 hour
-
-    let reply = `Great! I've logged ${medication.name} ${medication.dose}. `;
-    
-    if (isLate) {
-      reply += `I noticed you took it a bit later than your usual ${medication.timing} time. Everything okay? `;
-    } else {
-      reply += `Right on schedule! `;
-    }
-
-    // Get next medication
-    const nextMed = await storage.getNextMedication(context.user.id);
-    if (nextMed) {
-      reply += `Your next dose is ${nextMed.name} ${nextMed.dose} at ${nextMed.timing}.`;
-    } else {
-      reply += `You're all caught up with medications for now!`;
-    }
-
-    return { reply, needsFollowUp: false, actions };
-  }
-
-  private async handleMealLogged(intent: any, context: AgentContext, actions: string[]): Promise<OrchestratorResponse> {
-    const mealType = intent.entities.mealType;
-    const foods = intent.entities.foods || "";
-    const time = intent.entities.time || new Date();
-
-    await storage.createMealLog(context.user.id, {
-      mealType,
-      foods,
-      loggedAt: time,
-      hydration: intent.entities.hydration,
+  private async saveAndReturn(
+    userId: string,
+    reply: string,
+    context: AgentContext,
+    metadata: Record<string, any>,
+  ): Promise<AgentResponse> {
+    await storage.createConversationMessage(userId, {
+      sender: "sahai", message: reply, metadata,
     });
-    actions.push("meal_logged");
-
-    // Check if late
-    const baseline = await storage.getRoutineBaseline(context.user.id);
-    const isLate = this.isMealLate(mealType, time, baseline);
-
-    const timeStr = new Date(time).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
-    
-    let reply = `Perfect! I've logged your ${mealType}`;
-    if (foods) {
-      reply += ` (${foods})`;
-    }
-    reply += ` at ${timeStr}. `;
-
-    if (isLate) {
-      reply += `That's a bit later than your usual time. Busy day? `;
-    }
-
-    // Check for pending after-food medications
-    const afterFoodMeds = await storage.getPendingAfterFoodMedications(context.user.id);
-    if (afterFoodMeds.length > 0) {
-      reply += `Don't forget to take your ${afterFoodMeds[0].name} after eating!`;
-    } else {
-      reply += `Hope you enjoyed it!`;
-    }
-
-    return { reply, needsFollowUp: false, actions };
+    this.backgroundJobs(context);
+    return { success: true, data: { reply, needsFollowUp: false } };
   }
 
-  private async handleSymptomReported(intent: any, context: AgentContext, actions: string[]): Promise<OrchestratorResponse> {
-    const symptom = intent.entities.symptom;
-    const severity = intent.entities.severity || 3;
-    const notes = intent.entities.notes;
+  // ─── Classifier ─────────────────────────────────────────────────────────────
+  // One call. Returns a discriminated union so the switch above is exhaustive.
 
-    // Get context snapshot
-    const contextSnapshot = await this.captureContext(context);
+  private async classify(
+    text: string,
+    userMeds: any[],
+    history: any[],
+    snapshot: string,
+  ): Promise<Route> {
+    const medList = userMeds.map(m => `${m.name} (${m.dose})`).join(", ") || "none";
+    const lastAI = [...history].reverse().find(m => m.sender === "sahai")?.message || "";
 
-    await storage.createSymptomLog(context.user.id, {
-      symptom,
-      severity,
-      loggedAt: new Date(),
-      notes,
-      contextSnapshot,
-    });
-    actions.push("symptom_logged");
+    const res = await this.callOpenAI([
+      {
+        role: "system",
+        content: `You are a health message router for a senior health app.
+Classify the message and return JSON.
 
-    // Check for patterns
-    const recentSymptoms = await storage.getRecentSymptoms(context.user.id, 7);
-    const sameSymptomCount = recentSymptoms.filter(s => s.symptom === symptom).length;
+User medications: ${medList}
+Last AI message: "${lastAI.slice(0, 200)}"
+Recent activity snapshot:
+${snapshot}
 
-    let reply = `I've noted that you're experiencing ${symptom}`;
-    if (severity >= 4) {
-      reply += ` (severity ${severity}/5). `;
-    } else {
-      reply += `. `;
-    }
+Intent types for actions:
+- meal_logged      → entities: { mealType, foods }
+- vital_logged     → entities: { vitalType (blood_sugar|blood_pressure|weight|heart_rate|temperature|oxygen), value, unit? }
+- med_taken        → entities: { medication, time? }
+- symptom_reported → entities: { symptom, severity (1-5) }
+- activity_logged  → entities: { activity, duration? }
 
-    if (sameSymptomCount >= 2) {
-      reply += `I've noticed you've reported ${symptom} ${sameSymptomCount} times this week. There might be a pattern here - it usually happens in the afternoon and could be related to your meal timing. `;
-    }
+Return ONE of these shapes:
+{ "route": "off_topic" }
+{ "route": "greeting" }
+{ "route": "translation", "targetLanguage": "Hindi" }
+{ "route": "simple_question" }
+{ "route": "single_action", "intent": { "type": "...", "entities": {...}, "confidence": 0.9 } }
+{ "route": "compound", "intents": [ { "type": "...", "entities": {...}, "confidence": 0.9 }, ... ] }
 
-    if (severity >= 4) {
-      reply += `This sounds uncomfortable. Please sit down and rest. If it gets worse or doesn't improve soon, I can alert your caregiver. Would you like me to do that?`;
-    } else {
-      reply += `Take it easy and let me know if it gets worse. I'm keeping track of this for you.`;
-    }
-
-    return { reply, needsFollowUp: severity >= 4, actions };
-  }
-
-  private async handleActivity(intent: any, context: AgentContext, actions: string[]): Promise<OrchestratorResponse> {
-    const activity = intent.entities.activity;
-
-    await storage.createActivityLog(context.user.id, {
-      activity,
-      loggedAt: new Date(),
-    });
-    actions.push("activity_logged");
-
-    const reply = `Noted! You're ${activity === "resting" ? "resting" : activity}.`;
-    return { reply, needsFollowUp: false, actions };
-  }
-
-  private async handleQuestion(intent: any, context: AgentContext, actions: string[]): Promise<OrchestratorResponse> {
-    try {
-      // Get user data
-      const todayMeds = await storage.getTodayMedications(context.user.id);
-      const todayMeals = await storage.getTodayMeals(context.user.id);
-      const recentSymptoms = await storage.getRecentSymptoms(context.user.id, 7);
-      const recentActivities = await storage.getRecentActivities(context.user.id, 5);
-      const routineBaseline = await storage.getRoutineBaseline(context.user.id);
-      
-      // Use RAG to find relevant context
-      let ragContext = "";
-      try {
-        const ragResult = await this.ragAgent.execute(
-          {
-            query: intent.entities.question || intent.entities.text,
-            topK: 5,
-          },
-          context
-        );
-        ragContext = ragResult.success ? this.ragAgent.buildContext(ragResult.data) : "";
-      } catch (ragError: any) {
-        this.log(`RAG retrieval failed: ${ragError.message}`, "warn");
-      }
-
-      // Build user context summary
-      const userProfile = `Name: ${context.user.name || 'User'}, Age Group: ${context.user.ageGroup || 'not specified'}, Language: ${context.user.language || 'English'}`;
-      
-      const medsContext = todayMeds.length > 0 
-        ? todayMeds.map((m: any) => `${m.name} ${m.dose} at ${m.timing} (${m.takenAt ? 'taken' : 'pending'})`).join(', ')
-        : 'No medications scheduled today';
-      
-      const mealsContext = todayMeals.length > 0 
-        ? todayMeals.map((m: any) => `${m.mealType} at ${new Date(m.loggedAt).toLocaleTimeString()}`).join(', ')
-        : 'No meals logged today';
-      
-      const symptomsContext = recentSymptoms.length > 0
-        ? recentSymptoms.map((s: any) => `${s.symptom} (severity ${s.severity}/5) on ${new Date(s.reportedAt).toLocaleDateString()}`).join(', ')
-        : 'No symptoms reported recently';
-      
-      const activitiesContext = recentActivities.length > 0
-        ? recentActivities.map((a: any) => `${a.activity} at ${new Date(a.loggedAt).toLocaleTimeString()}`).join(', ')
-        : 'No recent activities logged';
-
-      // Generate answer using LLM
-      const userLanguage = context.user.language || "English";
-      
-      this.log(`User language preference: ${userLanguage}`);
-      
-      // Build language-specific instruction (generic for all languages)
-      let languageInstruction = "";
-      if (userLanguage !== "English") {
-        languageInstruction = `🚨🚨🚨 CRITICAL LANGUAGE REQUIREMENT 🚨🚨🚨
-YOU MUST RESPOND 100% IN ${userLanguage.toUpperCase()}.
-ABSOLUTELY NO ENGLISH WORDS. NOT EVEN ONE WORD IN ENGLISH.
-DO NOT MATCH THE USER'S INPUT LANGUAGE. ONLY USE ${userLanguage.toUpperCase()}.
-
-The user's preferred language is ${userLanguage}. Every single word in your response must be in ${userLanguage}.
-Even if the user asks in a different language, you MUST respond in ${userLanguage}.
-
-Example of WRONG response (DO NOT DO THIS):
-"I'm sorry, but I can only respond in ${userLanguage}."
-[Responding in the same language as the user's question]
-
-Example of CORRECT response:
-[Respond naturally and completely in ${userLanguage} about their health question, regardless of what language they asked in]
-
-REMEMBER: Every single word must be in ${userLanguage}. Ignore the language of the user's question.`;
-      } else {
-        languageInstruction = `The user's preferred language is English. Always respond in English, even if they ask questions in other languages.`;
-      }
-      
-      const systemPrompt = `You are SahAI, a warm and supportive health companion for seniors.
-
-${languageInstruction}
-
-${userLanguage !== "English" ? `⚠️ LANGUAGE REQUIREMENT: Your entire response must be in ${userLanguage}. Not a single word in English. ⚠️` : ""}
-
-PERSONALITY:
-- Warm, friendly, conversational
-- Simple, clear language
-- Empathetic and encouraging
-- Direct and helpful
-
-USER PROFILE:
-${userProfile}
-
-USER'S CURRENT DATA:
-Medications Today: ${medsContext}
-Meals Today: ${mealsContext}
-Recent Symptoms (past week): ${symptomsContext}
-Recent Activities: ${activitiesContext}
-${routineBaseline ? `Usual routine: Wakes around ${routineBaseline.wakeTimeUsual || 'not set'}, sleeps around ${routineBaseline.sleepTimeUsual || 'not set'}` : ''}
-
-${ragContext ? `\nRelevant past conversations:\n${ragContext}` : ''}
-
-INSTRUCTIONS:
-- Answer the question directly and helpfully using the user's profile and data
-- For nutrition questions (protein, calories, etc.), provide age-appropriate recommendations based on their age group
-- For seniors (65+), recommend: 1.0-1.2g protein per kg body weight, moderate exercise, balanced diet
-- For middle-aged adults (45-64), recommend: 0.8-1.0g protein per kg body weight, regular exercise
-- If specific body weight isn't available, provide general ranges and encourage them to consult their doctor for personalized advice
-- Use the user's actual medication, meal, and activity data when relevant
-- If data is missing, provide general helpful advice and encourage them to log information
-- Be conversational and natural (2-4 sentences typically)
-- Always be encouraging and supportive
-- Don't make up data - if you don't have specific information, say so and give general guidance
-
-${userLanguage !== "English" ? `\n🚨 FINAL REMINDER: Respond in ${userLanguage} ONLY. Zero English words. 🚨` : ""}`;
-
-      const response = await this.callOpenAI([
-        { role: "system", content: systemPrompt },
-        { role: "user", content: intent.entities.question || intent.entities.text },
-      ], {
-        temperature: 0.7,
-        max_tokens: 400,
-      });
-
-      const reply = response.choices[0].message.content;
-      return { reply, needsFollowUp: false, actions };
-    } catch (error: any) {
-      this.log(`Error in handleQuestion: ${error.message}`, "error");
-      throw error; // Re-throw to be caught by main execute
-    }
-  }
-
-  private async updateTwinAndCheckRisks(context: AgentContext): Promise<void> {
-    // Update twin state
-    await this.routineTwin.execute({ analysisType: "current_state" }, context);
-
-    // Check risks
-    const contextSnapshot = await this.captureContext(context);
-    await this.riskGuard.execute({ contextSnapshot }, context);
-  }
-
-  private async captureContext(context: AgentContext): Promise<any> {
-    const result = await this.contextAgent.execute(
-      { action: "capture_snapshot" },
-      context
-    );
-    return result.data;
-  }
-
-  private async getWeather(): Promise<any> {
-    const result = await this.contextAgent.execute(
-      { action: "get_weather" },
-      { user: {} as any, currentTime: new Date() }
-    );
-    return result.data;
-  }
-
-  private isMealLate(mealType: string, time: Date, baseline: any): boolean {
-    if (!baseline) return false;
-
-    const hour = time.getHours();
-    const minute = time.getMinutes();
-    const totalMinutes = hour * 60 + minute;
-
-    const windowKey = `${mealType}WindowEnd`;
-    const windowEnd = baseline[windowKey];
-    
-    if (!windowEnd) return false;
-
-    const [endHour, endMin] = windowEnd.split(":").map(Number);
-    const endMinutes = endHour * 60 + endMin;
-
-    return totalMinutes > endMinutes + 60; // 1 hour late
-  }
-
-  private createErrorResponse(message: string): AgentResponse {
-    return {
-      success: false,
-      message,
-      data: {
-        reply: message,
-        needsFollowUp: false,
+Rules:
+- Use the snapshot to resolve ambiguous references like "same as yesterday", "that one", "it again", "took it late"
+- off_topic: politics, sports scores, general knowledge unrelated to health
+- greeting: hi, hello, how are you, good morning
+- translation: "translate last message to X" or "say that in X"
+- simple_question: health question with no logging action
+- single_action: exactly one logging action (may also contain a question — that's fine)
+- compound: 2+ distinct logging actions in one message
+- When in doubt, prefer simple_question over off_topic`,
       },
-    };
+      { role: "user", content: text },
+    ], { temperature: 0.1, max_tokens: 200, response_format: { type: "json_object" } });
+
+    const parsed = JSON.parse(res.choices[0].message.content);
+    return this.normalizeRoute(parsed);
+  }
+
+  // Builds a compact 4-line context string — cheap to compute, high classifier value
+  private buildContextSnapshot(
+    todayMeds: any[],
+    recentMeals: any[],
+    recentSymptoms: any[],
+    recentVitals: any[],
+  ): string {
+    const lines: string[] = [];
+
+    const pendingMeds = todayMeds.filter((m: any) => !m.takenAt);
+    if (pendingMeds.length > 0)
+      lines.push(`Pending meds: ${pendingMeds.map((m: any) => `${m.name} ${m.dose}`).join(", ")}`);
+
+    const takenMeds = todayMeds.filter((m: any) => m.takenAt);
+    if (takenMeds.length > 0)
+      lines.push(`Taken today: ${takenMeds.map((m: any) => m.name).join(", ")}`);
+
+    if (recentMeals.length > 0) {
+      const m = recentMeals[0];
+      const ago = this.timeAgo(new Date(m.loggedAt));
+      lines.push(`Last meal: ${m.mealType}${m.foods ? ` - ${m.foods}` : ""} (${ago})`);
+    }
+
+    if (recentSymptoms.length > 0) {
+      const s = recentSymptoms[0];
+      const ago = this.timeAgo(new Date(s.loggedAt));
+      lines.push(`Last symptom: ${s.symptom} severity ${s.severity}/5 (${ago})`);
+    }
+
+    if (recentVitals.length > 0) {
+      const v = recentVitals[0];
+      const ago = this.timeAgo(new Date(v.loggedAt));
+      lines.push(`Last vital: ${v.vitalType} ${v.value} ${v.unit || ""} (${ago})`);
+    }
+
+    return lines.length > 0 ? lines.join("\n") : "No recent activity logged today";
+  }
+
+  private timeAgo(date: Date): string {
+    const mins = Math.floor((Date.now() - date.getTime()) / 60000);
+    if (mins < 60) return `${mins}m ago`;
+    const hrs = Math.floor(mins / 60);
+    if (hrs < 24) return `${hrs}h ago`;
+    return `${Math.floor(hrs / 24)}d ago`;
+  }
+
+  private normalizeRoute(raw: any): Route {
+    switch (raw.route) {
+      case "off_topic":    return { type: "off_topic" };
+      case "greeting":     return { type: "greeting" };
+      case "translation":  return { type: "translation", targetLanguage: raw.targetLanguage || "English" };
+      case "simple_question": return { type: "simple_question" };
+      case "single_action":
+        if (raw.intent) return { type: "single_action", intent: raw.intent };
+        return { type: "simple_question" }; // fallback
+      case "compound":
+        if (Array.isArray(raw.intents) && raw.intents.length > 1)
+          return { type: "compound", intents: raw.intents };
+        if (Array.isArray(raw.intents) && raw.intents.length === 1)
+          return { type: "single_action", intent: raw.intents[0] };
+        return { type: "simple_question" };
+      default:
+        return { type: "simple_question" };
+    }
+  }
+
+  // ─── Simple question handler ─────────────────────────────────────────────────
+
+  private async answerQuestion(
+    question: string,
+    context: AgentContext,
+    history: any[],
+  ): Promise<string> {
+    // ── Medication education intent detection ─────────────────────────────
+    // Catches: "tell me about metformin", "what is amlodipine", "explain my BP pill",
+    //          "how does insulin work", "side effects of aspirin", "teach me about X"
+    const medName = this.extractMedicationEducationIntent(question, context);
+    if (medName) {
+      this.log(`Medication education intent detected for: ${medName}`);
+      return this.explainMedication(medName, question, context);
+    }
+
+    // ── Food education intent detection ───────────────────────────────────
+    // Catches: "what does spinach contain", "is banana good for diabetics",
+    //          "nutrition in brown rice", "how much protein in eggs"
+    const foodName = this.extractFoodEducationIntent(question);
+    if (foodName) {
+      this.log(`Food education intent detected for: ${foodName}`);
+      const result = await this.nutritionAgent.execute(
+        { action: "explain_food", data: { foodName, question } },
+        context,
+      );
+      if (result.success) return result.data.reply;
+    }
+
+    // ── Generic question handler ──────────────────────────────────────────
+    const [todayMeds, todayMeals, recentSymptoms, recentActivities, ragResult] = await Promise.all([
+      storage.getTodayMedications(context.user.id),
+      storage.getTodayMeals(context.user.id),
+      storage.getRecentSymptoms(context.user.id, 7),
+      storage.getRecentActivities(context.user.id, 5),
+      this.ragAgent.execute({ query: question, topK: 3 }, context).catch(() => null),
+    ]);
+
+    const ragContext = ragResult?.success ? this.ragAgent.buildContext(ragResult.data) : "";
+    const lang = context.user.language || "English";
+    const langInstruction = lang !== "English"
+      ? `CRITICAL: Respond entirely in ${lang}. Zero English words.`
+      : "Respond in English.";
+
+    const res = await this.callOpenAI([
+      {
+        role: "system",
+        content: `You are SahAI, a warm health companion for seniors. ${langInstruction}
+
+User: ${context.user.name}, age group: ${context.user.ageGroup}
+Medications today: ${todayMeds.map((m: any) => `${m.name} ${m.dose} (${m.takenAt ? "taken" : "pending"})`).join(", ") || "none"}
+Meals today: ${todayMeals.map((m: any) => m.mealType).join(", ") || "none"}
+Recent symptoms: ${recentSymptoms.slice(0, 3).map((s: any) => s.symptom).join(", ") || "none"}
+${ragContext ? `Relevant history:\n${ragContext}` : ""}
+
+Answer directly and warmly in 2-3 sentences.`,
+      },
+      // Inject last 6 turns of conversation so the model has thread memory
+      ...history.slice(-6).map((m: any) => ({
+        role: m.sender === "sahai" ? "assistant" : "user" as "assistant" | "user",
+        content: m.message,
+      })),
+      { role: "user", content: question },
+    ], { temperature: 0.7, max_tokens: 300 });
+
+    return res.choices[0].message.content.trim();
+  }
+
+  // Detects "tell me about X", "what is X", "explain X", "how does X work",
+  // "side effects of X", "teach me about X" where X is a medication name.
+  // Returns the medication name if detected, null otherwise.
+  private extractMedicationEducationIntent(
+    question: string,
+    context: AgentContext,
+  ): string | null {
+    const lower = question.toLowerCase();
+
+    // Education trigger phrases
+    const educationTriggers = [
+      /(?:tell me about|explain|what is|what are|how does|teach me about|info(?:rmation)? (?:about|on)|learn about|side effects? of|uses? of|purpose of|why (?:do i|am i) taking)\s+(.+)/i,
+      /(?:what does|how do i take|when should i take|can i take)\s+(.+?)(?:\s+do|\s+work|\s+help|\?|$)/i,
+    ];
+
+    for (const pattern of educationTriggers) {
+      const match = question.match(pattern);
+      if (match) {
+        const candidate = match[1].trim()
+          .replace(/\?$/, "")
+          .replace(/\s+(tablet|pill|capsule|medicine|medication|drug)s?$/i, "")
+          .trim();
+
+        // Check if it matches a known medication name (fuzzy)
+        if (candidate.length > 1) return candidate;
+      }
+    }
+
+    // Also catch "my [medication]" patterns — "explain my metformin"
+    const myMedMatch = lower.match(/(?:my|the)\s+([\w\s]+?)(?:\s+medication|\s+pill|\s+tablet|\s+medicine|\?|$)/i);
+    if (myMedMatch && educationTriggers.some(p => p.test(lower))) {
+      return myMedMatch[1].trim();
+    }
+
+    return null;
+  }
+
+  // Detects food education questions: "what does X contain", "is X good for diabetics",
+  // "nutrition in X", "how much protein in X", "calories in X", "is X healthy"
+  private extractFoodEducationIntent(question: string): string | null {
+    const foodEducationPatterns = [
+      /(?:what(?:'s| is| are)(?: in| does)?\s+|nutrition(?:al)?\s+(?:value|info|content)\s+(?:of|in)\s+|calories?\s+in\s+|protein\s+in\s+|carbs?\s+in\s+|how\s+(?:much|many)\s+\w+\s+(?:is\s+in|does|in)\s+)([\w\s]+?)(?:\s+contain|\s+have|\s+provide|\?|$)/i,
+      /(?:is|are)\s+([\w\s]+?)\s+(?:good|bad|healthy|safe|okay|ok)\s+(?:for|to eat)/i,
+      /(?:tell me about|explain|what about)\s+([\w\s]+?)\s+(?:nutrition|nutrients|benefits|health benefits)/i,
+      /(?:can i eat|should i eat|is it okay to eat)\s+([\w\s]+?)(?:\?|$)/i,
+    ];
+
+    // Common food words to validate the match is actually a food
+    const FOOD_SIGNALS = /\b(rice|wheat|dal|lentil|spinach|banana|apple|mango|milk|egg|chicken|fish|bread|roti|chapati|oats|quinoa|broccoli|carrot|tomato|potato|sweet potato|avocado|almond|walnut|yogurt|paneer|tofu|beans|chickpea|pasta|sugar|salt|oil|ghee|butter|fruit|vegetable|grain|protein|fiber|vitamin|mineral)\b/i;
+
+    for (const pattern of foodEducationPatterns) {
+      const match = question.match(pattern);
+      if (match) {
+        const candidate = match[1].trim().replace(/\?$/, "").trim();
+        // Must be at least 2 chars and either match a known food word or be a short noun phrase
+        if (candidate.length >= 2 && (FOOD_SIGNALS.test(candidate) || candidate.split(" ").length <= 3)) {
+          return candidate;
+        }
+      }
+    }
+
+    return null;
+  }
+
+  // Routes to MedicationAgent.explainMedication, falls back gracefully
+  // if the medication isn't in the user's list (unknown med — still explain it)
+  private async explainMedication(
+    medName: string,
+    originalQuestion: string,
+    context: AgentContext,
+  ): Promise<string> {
+    // First try the dedicated MedicationAgent (uses RAG + structured output)
+    const result = await this.medicationAgent.execute(
+      { action: "explain", data: { medicationName: medName, language: context.user.language || "English" } },
+      context,
+    );
+
+    if (result.success && result.data?.explanation) {
+      const { simplePlain, keyPoints, teachBack } = result.data.explanation;
+      let reply = simplePlain;
+      if (keyPoints?.length) reply += `\n\nKey points:\n${keyPoints.map((p: string, i: number) => `${i + 1}. ${p}`).join("\n")}`;
+      if (teachBack) reply += `\n\n${teachBack}`;
+      return reply;
+    }
+
+    // Medication not in user's list — fall back to general LLM explanation
+    // Still better than the generic answerQuestion path because it's focused
+    this.log(`${medName} not in user's medication list — using general explanation`);
+    const lang = context.user.language || "English";
+    const res = await this.callOpenAI([
+      {
+        role: "system",
+        content: `You are a medication educator for a senior health app. Explain medications clearly and simply.
+Language: ${lang}. Age group: ${context.user.ageGroup}.
+Cover: what it does, how to take it, common side effects, important precautions.
+Keep it to 4-5 sentences. No medical jargon.`,
+      },
+      { role: "user", content: originalQuestion },
+    ], { temperature: 0.6, max_tokens: 400 });
+
+    return res.choices[0].message.content.trim();
+  }
+
+  // ─── Single action dispatcher ────────────────────────────────────────────────
+  // Direct dispatch — no graph, no synthesis overhead.
+
+  private async dispatchSingleAction(
+    intent: ParsedIntent,
+    originalText: string,
+    context: AgentContext,
+  ): Promise<string> {
+    const { type, entities } = intent;
+
+    switch (type) {
+      case "meal_logged":
+        return this.logMeal(entities, context);
+      case "vital_logged":
+        return this.logVital(entities, context);
+      case "med_taken":
+        return this.logMedication(entities, context);
+      case "symptom_reported":
+        return this.logSymptom(entities, context);
+      case "activity_logged":
+        return this.logActivity(entities, context);
+      default:
+        return this.answerQuestion(originalText, context, []);
+    }
+  }
+
+  private async logMeal(entities: any, context: AgentContext): Promise<string> {
+    const { mealType = "meal", foods = "" } = entities;
+    await storage.createMealLog(context.user.id, { mealType, foods, loggedAt: new Date() });
+
+    const afterFoodMeds = await storage.getPendingAfterFoodMedications(context.user.id);
+    let reply = `Got it! Logged your ${mealType}${foods ? ` (${foods})` : ""}.`;
+    if (afterFoodMeds.length > 0)
+      reply += ` Don't forget to take ${afterFoodMeds[0].name} after eating.`;
+    return reply;
+  }
+
+  private async logVital(entities: any, context: AgentContext): Promise<string> {
+    const { vitalType, value, unit } = entities;
+    const resolvedUnit = unit || ({ blood_sugar: "mg/dL", blood_pressure: "mmHg", weight: "kg", heart_rate: "bpm" } as any)[vitalType] || "";
+
+    await storage.createHealthVital(context.user.id, {
+      vitalType, value: String(value), unit: resolvedUnit, loggedAt: new Date(),
+    });
+
+    // Simple threshold check without LLM
+    let note = "";
+    if (vitalType === "blood_sugar" && parseFloat(value) > 180)
+      note = " That's on the higher side — keep an eye on it and stay hydrated.";
+    else if (vitalType === "blood_pressure") {
+      const systolic = parseInt(String(value).split("/")[0]);
+      if (systolic > 140) note = " That's elevated — consider resting and checking again in 30 minutes.";
+    }
+
+    return `Logged your ${vitalType.replace("_", " ")}: ${value} ${resolvedUnit}.${note}`;
+  }
+
+  private async logMedication(entities: any, context: AgentContext): Promise<string> {
+    const { medication } = entities;
+    const med = await storage.getMedicationByName(context.user.id, medication);
+
+    if (!med)
+      return `I don't see "${medication}" in your list. Want me to add it?`;
+
+    await storage.markMedicationTaken(context.user.id, med.id, new Date());
+    const next = await storage.getNextMedication(context.user.id);
+    let reply = `Marked ${med.name} ${med.dose} as taken.`;
+    if (next) reply += ` Next up: ${next.name} at ${next.timing}.`;
+    return reply;
+  }
+
+  private async logSymptom(entities: any, context: AgentContext): Promise<string> {
+    const { symptom, severity = 3 } = entities;
+    await storage.createSymptomLog(context.user.id, { symptom, severity, loggedAt: new Date() });
+
+    const recent = await storage.getRecentSymptoms(context.user.id, 7);
+    const count = recent.filter(s => s.symptom === symptom).length;
+
+    let reply = `Noted — logged ${symptom} (severity ${severity}/5).`;
+    if (count >= 3) reply += ` This is the ${count}rd time this week. Worth mentioning to your doctor.`;
+    else if (severity >= 4) reply += ` That sounds uncomfortable — rest and let me know if it gets worse.`;
+    return reply;
+  }
+
+  private async logActivity(entities: any, context: AgentContext): Promise<string> {
+    const { activity, duration } = entities;
+    await storage.createActivityLog(context.user.id, { activity, duration, loggedAt: new Date() });
+    return `Great! Logged ${activity}${duration ? ` for ${duration} minutes` : ""}.`;
+  }
+
+  // ─── Greeting handler ────────────────────────────────────────────────────────
+
+  private async handleGreeting(text: string, context: AgentContext): Promise<string> {
+    const [todayMeds, todayMeals] = await Promise.all([
+      storage.getTodayMedications(context.user.id),
+      storage.getTodayMeals(context.user.id),
+    ]);
+
+    const pendingMeds = todayMeds.filter((m: any) => !m.takenAt);
+    const name = context.user.name?.split(" ")[0] || "there";
+
+    let reply = `Hey ${name}! `;
+    if (pendingMeds.length > 0)
+      reply += `You have ${pendingMeds.length} medication${pendingMeds.length > 1 ? "s" : ""} pending today. `;
+    else if (todayMeals.length === 0)
+      reply += `You haven't logged any meals yet today. `;
+    else
+      reply += `You're doing great today! `;
+    reply += `How are you feeling?`;
+    return reply;
+  }
+
+  // ─── Translation handler ─────────────────────────────────────────────────────
+
+  private async handleTranslation(targetLanguage: string, history: any[]): Promise<string> {
+    const lastAI = [...history].reverse().find(m => m.sender === "sahai");
+    if (!lastAI) return "I don't have a previous message to translate.";
+
+    const res = await this.callOpenAI([
+      { role: "system", content: `Translate to ${targetLanguage}. Return ONLY the translation, nothing else.` },
+      { role: "user", content: lastAI.message },
+    ], { temperature: 0.2, max_tokens: 400 });
+
+    return res.choices[0].message.content.trim();
+  }
+
+  // ─── Background jobs (fire and forget) ───────────────────────────────────────
+
+  private backgroundJobs(context: AgentContext): void {
+    this.routineTwin.execute({ analysisType: "current_state" }, context)
+      .catch(e => this.log(`Twin update failed: ${e.message}`, "error"));
+  }
+
+  // ─── Static replies ───────────────────────────────────────────────────────────
+
+  private fallbackReply(lang?: string | null): string {
+    return "I had a bit of trouble with that. Could you rephrase? I can help with medications, meals, symptoms, and how you're feeling.";
   }
 }
