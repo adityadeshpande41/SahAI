@@ -29,7 +29,7 @@ async function migrate() {
 
   const pool = new Pool({
     connectionString,
-    ssl: process.env.NODE_ENV === "production" ? { rejectUnauthorized: false } : false,
+    ssl: { rejectUnauthorized: false },
   });
 
   const client = await pool.connect();

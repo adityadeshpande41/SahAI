@@ -322,9 +322,9 @@ Rules:
 User: ${context.user.name}, age group: ${context.user.ageGroup}
 Medications today: ${todayMeds.map((m: any) => `${m.name} ${m.dose} (${m.takenAt ? "taken" : "pending"})`).join(", ") || "none"}
 Meals today: ${todayMeals.map((m: any) => m.mealType).join(", ") || "none"}
-Recent symptoms: ${recentSymptoms.slice(0, 3).map((s: any) => s.symptom).join(", ") || "none"}
 ${ragContext ? `Relevant history:\n${ragContext}` : ""}
 
+IMPORTANT: Only reference symptoms or conditions the user explicitly mentions in their current message. Do NOT assume or infer symptoms from past history.
 Answer directly and warmly in 2-3 sentences.`,
       },
       // Inject last 6 turns of conversation so the model has thread memory

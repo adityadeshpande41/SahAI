@@ -50,7 +50,7 @@ const GREETING_PATTERNS = [
 ];
 
 const TRANSLATION_PATTERN =
-  /(?:translate|say that|repeat that|tell me that)\s+(?:in|to)\s+(\w+)/i;
+  /(?:translate|say that|repeat that|tell me that)(?:\s+(?:the\s+)?(?:last|previous|that|this|above)?\s*(?:message|response|reply|text|it))?\s+(?:in|to|into)\s+(\w+)/i;
 
 export function guardrailCheck(text: string): PipelineResult | null {
   const lower = text.toLowerCase().trim();
